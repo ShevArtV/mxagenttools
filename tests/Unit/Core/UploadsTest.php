@@ -22,8 +22,7 @@ class UploadsTest extends TestCase
 
     protected function tearDown(): void
     {
-        Uploads::removeDir($this->tmp . '/mxagenttools');
-        @rmdir($this->tmp);
+        Uploads::removeDir($this->tmp);
     }
 
     public function testPutAndPath(): void
@@ -37,6 +36,7 @@ class UploadsTest extends TestCase
         $path = $uploads->path($got['token']);
         $this->assertSame($png, file_get_contents($path));
         $this->assertSame('Фото_товара.PNG', basename($path));
+        $this->assertSame($this->tmp . '/' . $got['token'], dirname($path), 'временный файл — в каталоге, заданном сайтом');
         $uploads->cleanTemp($got['token']);
         $this->assertFileDoesNotExist($path);
         $this->assertSame('Фото_товара.PNG', $uploads->name($got['token']), 'cleanTemp оставляет файл в хранилище');

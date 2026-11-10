@@ -18,11 +18,14 @@ class Gallery implements EntityInterface, FileKeeperInterface
     private $files;
     /** @var IdMap */
     private $ids;
+    /** @var string каталог временных файлов внутри сайта */
+    private $tmp;
 
-    public function __construct(GalleryFiles $files, IdMap $ids)
+    public function __construct(GalleryFiles $files, IdMap $ids, string $tmp)
     {
         $this->files = $files;
         $this->ids = $ids;
+        $this->tmp = rtrim($tmp, '/');
     }
 
     public function type(): string
@@ -67,7 +70,7 @@ class Gallery implements EntityInterface, FileKeeperInterface
                 if (!is_array($copy) || empty($copy['data'])) {
                     throw new RuntimeException("копии фото {$file['id']} нет в журнале — вернуть его нельзя");
                 }
-                $dir = sys_get_temp_dir() . '/mxagenttools/restore-' . bin2hex(random_bytes(8));
+                $dir = $this->tmp . '/restore-' . bin2hex(random_bytes(8));
                 try {
                     $path = Uploads::materialize($dir, (string)$copy['name'], (string)base64_decode($copy['data']));
                     $new = $this->files->upload($rid, $path, (string)$file['description']);

@@ -10,6 +10,8 @@ use RuntimeException;
  * Файлы от агента (POST /agent/uploads): base64 в теле → проверка размера и sha256 → хранилище по token.
  * Инструмент записи получает файл по token: path() выкладывает байты во временный файл <tmp>/<token>/<имя>
  * (ms2 gallery/upload берёт файл по пути и название фото — из имени файла, поэтому имя сохраняется).
+ * <tmp> — каталог внутри сайта (Toolbox::tmpPath), не общий системный: на сервере с несколькими сайтами
+ * каталог, созданный первым сайтом, другим не доступен.
  * Просроченное чистится при каждом приёме. Картинку с параметрами сжатия (ImageOptions) Image\Images ужимает до
  * сохранения: sha256 сверяется по присланному, хранится и отдаётся — ужатое.
  */
@@ -28,14 +30,13 @@ class Uploads
     /** @var Images|null */
     private $images;
 
-    public function __construct(UploadStorageInterface $storage, int $ttlSeconds = 3600, int $maxBytes = 20971520, string $tmp = '',
-        ?Images $images = null)
+    public function __construct(UploadStorageInterface $storage, int $ttlSeconds, int $maxBytes, string $tmp, ?Images $images = null)
     {
         $this->images = $images;
         $this->storage = $storage;
         $this->ttl = $ttlSeconds;
         $this->maxBytes = $maxBytes;
-        $this->tmp = rtrim($tmp !== '' ? $tmp : sys_get_temp_dir(), '/') . '/mxagenttools';
+        $this->tmp = rtrim($tmp, '/');
     }
 
     /** Принять файл: $base64 — содержимое, $sha256 — необязательная сверка */
@@ -101,10 +102,10 @@ class Uploads
         }
     }
 
-    /** Байты во временный файл <dir>/<name>; ответ — путь */
+    /** Байты во временный файл <dir>/<name>; ответ — путь. Права каталога — по umask сайта */
     public static function materialize(string $dir, string $name, string $data): string
     {
-        if (!is_dir($dir) && !mkdir($dir, 0700, true) && !is_dir($dir)) {
+        if (!is_dir($dir) && !mkdir($dir, 0777, true) && !is_dir($dir)) {
             throw new RuntimeException("временный каталог не создаётся: {$dir}");
         }
         $path = $dir . '/' . self::cleanName($name);

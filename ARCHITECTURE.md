@@ -34,6 +34,8 @@ MODX — `mxapi_agent_read`, `mxapi_agent_write` (политика пакета,
   → в плане `diverged: true` и diff «у бота → сейчас → станет»; `apply` с `expect` из плана.
 - Файлы: `POST /agent/uploads` (base64 в теле, имя, sha256) → `token`, живёт 1 час; дальше
   token — параметр `gallery.upload` и т.п.
+  Процессору нужен путь — файл на время вызова кладётся в `core/components/mxagenttools/tmp/<token>/` сайта
+  (не в системный `/tmp`: на общем сервере его каталог чужой) и удаляется в `finally`.
 - `note` — у любого POST: кто и откуда попросил (уходит в журнал).
 - Отказ по сути (нет объекта, запрещённая привязка `@EVAL`) — ошибка mxApi с кодом `refusal`
   и текстом для человека; сбой — `processor_error`/`internal_error` штатно.

@@ -115,7 +115,7 @@ class Toolbox
     public function uploads(): Uploads
     {
         return new Uploads(new DbUploadStorage($this->modx), (int)$this->modx->getOption('mxagenttools.upload_ttl', null, 3600),
-            (int)round((float)$this->modx->getOption('mxagenttools.upload_max_mb', null, 20) * 1048576), '', new Images());
+            (int)round((float)$this->modx->getOption('mxagenttools.upload_max_mb', null, 20) * 1048576), $this->tmpPath(), new Images());
     }
 
     /** Умолчания сжатия картинок при приёме — настройки mxagenttools.image_* */
@@ -177,7 +177,7 @@ class Toolbox
         $entities->add($s['tv']);
         $entities->add($s['setting']);
         if ($this->has(self::MINISHOP2)) {
-            $entities->add(new Entity\Gallery($s['files'], $s['ids']));
+            $entities->add(new Entity\Gallery($s['files'], $s['ids'], $this->tmpPath()));
         }
         if ($this->has(self::MSOPTIONSPRICE)) {
             $entities->add(new Entity\Modification($s['mods'], $s['ids']));
@@ -209,6 +209,12 @@ class Toolbox
                 (int)$m->getOption('mxagenttools.batch_limit', null, 500));
         }
         return $this->services;
+    }
+
+    /** Временные файлы загрузок — внутри сайта, под core (не отдаётся по HTTP), не в общем системном /tmp */
+    private function tmpPath(): string
+    {
+        return MODX_CORE_PATH . 'components/mxagenttools/tmp';
     }
 
     private function corePath(): string
