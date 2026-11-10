@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model package="mxagenttools" baseClass="xPDOObject" platform="mysql" defaultEngine="InnoDB" phpdoc-package="mxagenttools" phpdoc-subpackage="model" version="1.1">
+    <object class="mxatJournal" table="mxagenttools_journal" extends="xPDOSimpleObject">
+        <field key="endpoint" dbtype="varchar" precision="100" phptype="string" null="false" default="" index="index"/>
+        <field key="kind" dbtype="varchar" precision="20" phptype="string" null="false" default="apply"/>
+        <field key="status" dbtype="varchar" precision="20" phptype="string" null="false" default="started" index="index"/>
+        <field key="params" dbtype="mediumtext" phptype="json" null="true"/>
+        <field key="targets" dbtype="text" phptype="json" null="true"/>
+        <field key="before" dbtype="longtext" phptype="json" null="true"/>
+        <field key="predicted" dbtype="longtext" phptype="json" null="true"/>
+        <field key="after" dbtype="longtext" phptype="json" null="true"/>
+        <field key="created" dbtype="text" phptype="json" null="true"/>
+        <field key="kept" dbtype="longtext" phptype="json" null="true"/>
+        <field key="user" dbtype="int" precision="10" attributes="unsigned" phptype="integer" null="false" default="0" index="index"/>
+        <field key="username" dbtype="varchar" precision="100" phptype="string" null="false" default=""/>
+        <field key="note" dbtype="varchar" precision="500" phptype="string" null="false" default=""/>
+        <field key="error" dbtype="text" phptype="string" null="true"/>
+        <field key="at" dbtype="datetime" phptype="datetime" null="true" index="index"/>
+        <field key="updatedon" dbtype="datetime" phptype="datetime" null="true"/>
+        <field key="rolled_back" dbtype="int" precision="10" attributes="unsigned" phptype="integer" null="false" default="0"/>
+        <field key="rollback_of" dbtype="int" precision="10" attributes="unsigned" phptype="integer" null="false" default="0" index="index"/>
+        <index alias="endpoint" name="endpoint" primary="false" unique="false" type="BTREE">
+            <column key="endpoint" length="" collation="A" null="false"/>
+        </index>
+        <index alias="status" name="status" primary="false" unique="false" type="BTREE">
+            <column key="status" length="" collation="A" null="false"/>
+        </index>
+        <index alias="user" name="user" primary="false" unique="false" type="BTREE">
+            <column key="user" length="" collation="A" null="false"/>
+        </index>
+        <index alias="at" name="at" primary="false" unique="false" type="BTREE">
+            <column key="at" length="" collation="A" null="false"/>
+        </index>
+        <index alias="rollback_of" name="rollback_of" primary="false" unique="false" type="BTREE">
+            <column key="rollback_of" length="" collation="A" null="false"/>
+        </index>
+    </object>
+    <object class="mxatUpload" table="mxagenttools_upload" extends="xPDOSimpleObject">
+        <field key="token" dbtype="char" precision="32" phptype="string" null="false" default="" index="unique"/>
+        <field key="name" dbtype="varchar" precision="255" phptype="string" null="false" default=""/>
+        <field key="sha256" dbtype="char" precision="64" phptype="string" null="false" default=""/>
+        <field key="size" dbtype="int" precision="10" attributes="unsigned" phptype="integer" null="false" default="0"/>
+        <field key="data" dbtype="longtext" phptype="string" null="false"/>
+        <field key="expires" dbtype="int" precision="10" attributes="unsigned" phptype="integer" null="false" default="0" index="index"/>
+        <field key="createdon" dbtype="int" precision="10" attributes="unsigned" phptype="integer" null="false" default="0"/>
+        <index alias="token" name="token" primary="false" unique="true" type="BTREE">
+            <column key="token" length="" collation="A" null="false"/>
+        </index>
+        <index alias="expires" name="expires" primary="false" unique="false" type="BTREE">
+            <column key="expires" length="" collation="A" null="false"/>
+        </index>
+    </object>
+</model>
