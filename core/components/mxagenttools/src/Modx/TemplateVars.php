@@ -58,7 +58,26 @@ class TemplateVars
     public function raw(\modTemplateVar $tv, int $resource): string
     {
         $row = $this->modx->getObject('modTemplateVarResource', ['tmplvarid' => $tv->get('id'), 'contentid' => $resource], false);
-        return (string)($row ? $row->get('value') : $tv->get('default_text'));
+        return $row ? (string)$row->get('value') : self::unset($tv);
+    }
+
+    /**
+     * Значение TV без строки. У checkbox / listbox-multiple умолчание, которого нет среди вариантов (productSet:
+     * default 0 при «Да==1»), значит «ничего не отмечено»: resource/update пишет такое строкой «», и снимок до и после
+     * записи иначе расходился бы на «0» → «» без правки.
+     */
+    private static function unset(\modTemplateVar $tv): string
+    {
+        $default = (string)$tv->get('default_text');
+        if (!in_array((string)$tv->get('type'), ['checkbox', 'listbox-multiple'], true) || $default === '') {
+            return $default;
+        }
+        $values = [];
+        foreach (explode('||', (string)$tv->get('elements')) as $option) {
+            $parts = explode('==', $option, 2);
+            $values[] = trim($parts[1] ?? $parts[0]);
+        }
+        return array_diff(explode('||', $default), $values) ? '' : $default;
     }
 
     /** name => сырое значение всех TV шаблона */

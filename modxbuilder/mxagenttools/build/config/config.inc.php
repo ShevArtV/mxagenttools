@@ -8,7 +8,7 @@ $buildConfig = [
     'real_package_name' => 'mxAgentTools',
     'package_name' => 'mxagenttools',
     'package_version' => '1.1.0',
-    'package_release' => 'beta2',
+    'package_release' => 'beta3',
     'package_table_prefix' => 'mxagenttools_',
     'package_class_prefix' => 'mxat',
     // модель (schema + классы) лежит в репо готовой: core/components/mxagenttools/model/

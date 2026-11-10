@@ -4,6 +4,7 @@ namespace MxAgentTools\Api\Endpoint;
 
 use MxAgentTools\Api\Passport;
 use MxAgentTools\Modx\Toolbox;
+use MxAgentTools\Tool\BatchToolInterface;
 use MxAgentTools\Tool\ReadToolInterface;
 use MxAgentTools\Tool\ToolInterface;
 use MxAgentTools\Tool\WriteToolInterface;
@@ -35,7 +36,11 @@ class ToolEndpoint extends AgentEndpoint
         $tool = $this->tool;
         [$mode, $expect, $note] = self::writeMode($params);
         $args = self::toolArgs($params);
-        return $mode === 'apply' ? $executor->apply($tool, $args, $expect, $note, mb_substr((string)($args['batch'] ?? ''), 0, 64))
+        $out = $mode === 'apply' ? $executor->apply($tool, $args, $expect, $note, mb_substr((string)($args['batch'] ?? ''), 0, 64))
             : $executor->plan($tool, $args);
+        if ($tool instanceof BatchToolInterface && !empty($args['selection'])) {
+            $out['selection'] = $this->toolbox->selectionInfo((string)$args['selection'], (int)($args['page'] ?? 0));
+        }
+        return $out;
     }
 }

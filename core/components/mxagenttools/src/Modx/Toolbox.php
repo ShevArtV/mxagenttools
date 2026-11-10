@@ -91,6 +91,15 @@ class Toolbox
         return new Executor($this->entities(), $this->journal(), (string)$this->modx->user->get('username'));
     }
 
+    /** Где порция в выборке: total, pages (по batch_limit), page — для ответа пакетного инструмента */
+    public function selectionInfo(string $selection, int $page): array
+    {
+        $s = $this->services();
+        $total = $s['selections']->total($selection);
+        return ['id' => $selection, 'total' => $total, 'pages' => (int)ceil($total / $s['batch']->limit()), 'page' => $page,
+            'page_size' => $s['batch']->limit()];
+    }
+
     public function batchRollback(): BatchRollback
     {
         return new BatchRollback($this->executor(), $this->journal());
