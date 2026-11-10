@@ -1,0 +1,180 @@
+<?php
+
+namespace MxAgentTools\Modx;
+
+use MxAgentTools\Core\Entities;
+use MxAgentTools\Core\Executor;
+use MxAgentTools\Core\IdMap;
+use MxAgentTools\Core\Processor;
+use MxAgentTools\Core\Uploads;
+use MxAgentTools\Entity;
+use MxAgentTools\Tool;
+use MxAgentTools\Tool\ToolInterface;
+
+/**
+ * Сборка инструментов и сущностей сайта. Какие пакеты-расширения есть — по каталогам моделей (дёшево, при
+ * регистрации эндпоинтов); сами модели грузятся prepare() перед вызовом: без модели, например, collections
+ * resource/update молча взял бы базовый процессор вместо CollectionContainerUpdateProcessor.
+ * Инструмент без своего пакета не создаётся — его эндпоинта нет в каталоге.
+ */
+class Toolbox
+{
+    const MINISHOP2 = 'minishop2';
+    const MSOPTIONSPRICE = 'msoptionsprice';
+    const COLLECTIONS = 'collections';
+    const CLIENTCONFIG = 'clientconfig';
+
+    /** @var \modX */
+    private $modx;
+    /** @var array|null */
+    private $packages;
+    /** @var bool */
+    private $prepared = false;
+    /** @var array|null */
+    private $services;
+
+    public function __construct(\modX $modx)
+    {
+        $this->modx = $modx;
+    }
+
+    /** Установленные пакеты-расширения; msOptionsPrice2 — только вместе с ms2 (фото модификаций — из галереи ms2) */
+    public function packages(): array
+    {
+        if ($this->packages === null) {
+            $this->packages = [];
+            foreach ([self::MINISHOP2 => 'minishop2/', self::MSOPTIONSPRICE => 'msoptionsprice/',
+                self::COLLECTIONS => 'collections/', self::CLIENTCONFIG => 'clientconfig/'] as $package => $dir) {
+                if (is_dir(MODX_CORE_PATH . "components/{$package}/model/{$dir}")) {
+                    $this->packages[] = $package;
+                }
+            }
+            if (!$this->has(self::MINISHOP2)) {
+                $this->packages = array_values(array_diff($this->packages, [self::MSOPTIONSPRICE]));
+            }
+        }
+        return $this->packages;
+    }
+
+    public function has(string $package): bool
+    {
+        return in_array($package, $this->packages(), true);
+    }
+
+    /** Модели пакета и расширений — перед вызовом инструмента */
+    public function prepare(): void
+    {
+        if ($this->prepared) {
+            return;
+        }
+        $this->modx->addPackage('mxagenttools', $this->corePath() . 'model/');
+        if ($this->has(self::MINISHOP2)) {
+            $this->modx->getService('miniShop2', 'miniShop2', MODX_CORE_PATH . 'components/minishop2/model/minishop2/');
+            $this->modx->loadClass('msProduct');
+        }
+        foreach ([self::MSOPTIONSPRICE => 'msopModification', self::COLLECTIONS => 'CollectionContainer',
+            self::CLIENTCONFIG => 'cgSetting'] as $package => $class) {
+            if ($this->has($package)) {
+                $this->modx->addPackage($package, MODX_CORE_PATH . "components/{$package}/model/");
+                $this->modx->loadClass($class);
+            }
+        }
+        $this->prepared = true;
+    }
+
+    public function executor(): Executor
+    {
+        $this->prepare();
+        return new Executor($this->entities(), $this->journal(), (string)$this->modx->user->get('username'));
+    }
+
+    public function journal(): DbJournal
+    {
+        $this->prepare();
+        return new DbJournal($this->modx, (int)$this->modx->getOption('mxagenttools.journal_depth', null, 5000));
+    }
+
+    /** Настройки читаются при вызове: объект создаётся и при регистрации эндпоинтов, поэтому без prepare() */
+    public function uploads(): Uploads
+    {
+        return new Uploads(new DbUploadStorage($this->modx), (int)$this->modx->getOption('mxagenttools.upload_ttl', null, 3600),
+            (int)round((float)$this->modx->getOption('mxagenttools.upload_max_mb', null, 20) * 1048576));
+    }
+
+    /** @return ToolInterface[] */
+    public function tools(): array
+    {
+        $m = $this->modx;
+        $s = $this->services();
+        $tools = [
+            new Tool\Resource\ResourceGet($m, $s['resource']), new Tool\Resource\ResourceFind($m),
+            new Tool\Resource\ResourceChildren($m), new Tool\Resource\ResourceCreate($m, $s['processor'], $s['tvs'], $s['resource']),
+            new Tool\Resource\ResourceUpdate($s['resource']), new Tool\Resource\ResourceDelete($s['processor']),
+            new Tool\Resource\ResourceUndelete($s['processor']),
+            new Tool\System\TemplateList($m, $s['tvs']), new Tool\System\ContextList($m), new Tool\System\Query($m),
+            new Tool\Tv\TvGet($s['tvs'], $s['tv']), new Tool\Tv\TvList($m), new Tool\Tv\TvCreate($s['processor'], $s['tvs'], $s['tv']),
+            new Tool\Tv\TvUpdate($s['processor'], $s['tv']), new Tool\Tv\TvDelete($s['processor']),
+            new Tool\Setting\SettingGet($m), new Tool\Setting\SettingUpdate($s['setting']),
+        ];
+        if ($this->has(self::MINISHOP2)) {
+            $mods = $s['mods'];
+            array_push($tools, new Tool\Gallery\GalleryGet($s['files'], $mods), new Tool\Gallery\GalleryUpload($s['files'], $this->uploads()),
+                new Tool\Gallery\GalleryRemove($s['files'], $mods), new Tool\Gallery\GallerySort($s['files']));
+        }
+        if ($this->has(self::MSOPTIONSPRICE)) {
+            foreach ([Tool\Modification\ModificationList::class, Tool\Modification\ModificationCreate::class,
+                Tool\Modification\ModificationUpdate::class, Tool\Modification\ModificationDelete::class,
+                Tool\Modification\ModificationImages::class] as $class) {
+                $tools[] = new $class($s['mods'], $s['files']);
+            }
+        }
+        if ($this->has(self::CLIENTCONFIG)) {
+            array_push($tools, new Tool\ClientConfig\ClientConfigGet($m, $s['clientconfig']),
+                new Tool\ClientConfig\ClientConfigUpdate($s['clientconfig']));
+        }
+        return $tools;
+    }
+
+    public function entities(): Entities
+    {
+        $s = $this->services();
+        $entities = new Entities();
+        $entities->add($s['resource']);
+        $entities->add($s['tv']);
+        $entities->add($s['setting']);
+        if ($this->has(self::MINISHOP2)) {
+            $entities->add(new Entity\Gallery($s['files'], $s['ids']));
+        }
+        if ($this->has(self::MSOPTIONSPRICE)) {
+            $entities->add(new Entity\Modification($s['mods'], $s['ids']));
+        }
+        if ($this->has(self::CLIENTCONFIG)) {
+            $entities->add($s['clientconfig']);
+        }
+        return $entities;
+    }
+
+    /** Общие объекты: один IdMap и один процессор на процесс */
+    private function services(): array
+    {
+        if ($this->services === null) {
+            $m = $this->modx;
+            $processor = new Processor($m);
+            $tvs = new TemplateVars($m);
+            $ids = new IdMap();
+            $product = $this->has(self::MINISHOP2) ? new ProductData($m) : null;
+            $files = new GalleryFiles($m, $processor);
+            $this->services = ['processor' => $processor, 'tvs' => $tvs, 'ids' => $ids, 'files' => $files,
+                'resource' => new Entity\Resource($m, $processor, $tvs, $product),
+                'tv' => new Entity\Tv($m, $processor, $tvs, $ids), 'setting' => new Entity\Setting($m, $processor),
+                'mods' => $this->has(self::MSOPTIONSPRICE) ? new Modifications($m, $processor) : null,
+                'clientconfig' => new Entity\ClientConfig($m, $processor)];
+        }
+        return $this->services;
+    }
+
+    private function corePath(): string
+    {
+        return (string)$this->modx->getOption('mxagenttools.core_path', null, MODX_CORE_PATH . 'components/mxagenttools/');
+    }
+}
