@@ -1,0 +1,31 @@
+{
+  "name": "shevartv/mxagenttools",
+  "description": "Инструменты админки MODX Revolution 2.8 для ИИ-агента: план, запись процессорами, журнал, откат",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=7.4"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "MxAgentTools\\": "core/components/mxagenttools/src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "MxAgentTools\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit"
+  },
+  "config": {
+    "platform": {
+      "php": "7.4.33"
+    },
+    "sort-packages": true
+  }
+}

@@ -1,0 +1,127 @@
+<?php
+
+namespace MxAgentTools\Core;
+
+/**
+ * Границы инструмента query (произвольная выборка xPDO): без MODX, чтобы проверяться тестами.
+ * Запрещены классы пользователей, сессий и журналов менеджера; у элементов-кода не отдаются и не
+ * участвуют в условиях поля с кодом. Условия — только массивом xPDO с полями класса и известными
+ * операторами: ключ условия xPDO подставляет в SQL, поэтому произвольная строка в ключе была бы инъекцией.
+ */
+final class QueryGuard
+{
+    const MAX_LIMIT = 200;
+    const DEFAULT_LIMIT = 50;
+    const CLASS_RE = '/^[A-Za-z][A-Za-z0-9_]{1,63}$/';
+    const DENIED_CLASS_RE = '/^(modUser.*|modSession|modManagerLog|modActiveUser)$/i';
+    /** Поля с кодом по классам (lowercase) */
+    const CODE_FIELDS = [
+        'modtemplate' => ['content'],
+        'modchunk' => ['snippet', 'content'],
+        'modsnippet' => ['snippet', 'content'],
+        'modplugin' => ['plugincode', 'content'],
+        'modscript' => ['content'],
+        'modelement' => ['content'],
+    ];
+    const OPERATORS = ['=', '!=', '<>', '>', '<', '>=', '<=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN', 'IS', 'IS NOT'];
+    const KEY_RE = '/^(?:(AND|OR):)?([A-Za-z_][A-Za-z0-9_]*)(?::([^:]+))?$/i';
+
+    public static function checkClass(string $class): void
+    {
+        if (!preg_match(self::CLASS_RE, $class)) {
+            throw new Refusal("query: недопустимое имя класса {$class}");
+        }
+        if (preg_match(self::DENIED_CLASS_RE, $class)) {
+            throw new Refusal("query: класс {$class} закрыт (пользователи, сессии, журнал менеджера)");
+        }
+    }
+
+    public static function hidden(string $class): array
+    {
+        return self::CODE_FIELDS[strtolower($class)] ?? [];
+    }
+
+    /**
+     * Поля выборки: пусто — все поля класса, кроме полей с кодом
+     * @param string[] $fields все поля класса
+     */
+    public static function select(string $class, array $fields, array $select): array
+    {
+        $hidden = self::hidden($class);
+        if (!$select) {
+            return array_values(array_diff($fields, $hidden));
+        }
+        foreach ($select as $field) {
+            self::field($class, $fields, (string)$field);
+        }
+        return array_values(array_unique(array_map('strval', $select)));
+    }
+
+    public static function where(string $class, array $fields, array $where, int $depth = 0): array
+    {
+        if ($depth > 3) {
+            throw new Refusal('query: where — вложенность групп не больше 3');
+        }
+        foreach ($where as $key => $value) {
+            if (is_int($key)) {
+                if (!is_array($value)) {
+                    throw new Refusal('query: where — строковые условия (SQL) не принимаются, только {"поле:оператор": значение}');
+                }
+                self::where($class, $fields, $value, $depth + 1);
+                continue;
+            }
+            if (!preg_match(self::KEY_RE, $key, $m)) {
+                throw new Refusal("query: where — недопустимый ключ «{$key}»");
+            }
+            self::field($class, $fields, $m[2]);
+            $op = strtoupper(trim($m[3] ?? '='));
+            if (!in_array($op, self::OPERATORS, true)) {
+                throw new Refusal("query: where — оператор «{$op}» не поддерживается, есть " . implode(' ', self::OPERATORS));
+            }
+            $list = in_array($op, ['IN', 'NOT IN'], true);
+            if ($list !== is_array($value)) {
+                throw new Refusal("query: where «{$key}» — " . ($list ? 'нужен список значений' : 'нужно одно значение'));
+            }
+            foreach ($list ? $value : [$value] as $v) {
+                if ($v !== null && !is_scalar($v)) {
+                    throw new Refusal("query: where «{$key}» — значения только строки и числа");
+                }
+            }
+        }
+        return $where;
+    }
+
+    /** sort: {"поле": "ASC|DESC"} → [[поле, направление]] */
+    public static function sort(string $class, array $fields, array $sort): array
+    {
+        $out = [];
+        foreach ($sort as $field => $dir) {
+            self::field($class, $fields, (string)$field);
+            $dir = strtoupper((string)$dir);
+            if (!in_array($dir, ['ASC', 'DESC'], true)) {
+                throw new Refusal("query: sort {$field} — ASC или DESC");
+            }
+            $out[] = [(string)$field, $dir];
+        }
+        return $out;
+    }
+
+    public static function limit($limit): int
+    {
+        $limit = $limit === null || $limit === '' ? self::DEFAULT_LIMIT : (int)$limit;
+        if ($limit < 1 || $limit > self::MAX_LIMIT) {
+            throw new Refusal('query: limit от 1 до ' . self::MAX_LIMIT);
+        }
+        return $limit;
+    }
+
+    private static function field(string $class, array $fields, string $field): void
+    {
+        if (!in_array($field, $fields, true)) {
+            throw new Refusal("query: у {$class} нет поля «{$field}»");
+        }
+        if (in_array($field, self::hidden($class), true)) {
+            throw new Refusal("query: поле {$class}.{$field} — код сайта, не отдаётся");
+        }
+    }
+}
