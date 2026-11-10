@@ -1,0 +1,8 @@
+1.0.0-beta
+==============
+- FEATURE: Провайдер mxApi (mxApi >= 1.2.1, MODX 2.8): инструменты админки для ИИ-агента — эндпоинты agent.* со scope agent.read / agent.write и правами mxapi_agent_read / mxapi_agent_write.
+- FEATURE: Чтение: ресурсы (get, find, children), шаблоны и их TV, TV, галерея ms2, модификации msOptionsPrice2, системные настройки, ClientConfig, контексты, выборка xPDO (query) без классов пользователей и сессий и без кода элементов.
+- FEATURE: Запись процессорами MODX в два шага: mode=plan («было → станет», hash) и mode=apply с expect; stale_plan, если объекты изменились после показа.
+- FEATURE: Журнал записей в таблице пакета, откат любой записи (plan/apply, расхождение «у бота → сейчас → станет»), откат отката.
+- FEATURE: Приём файлов (POST /agent/uploads, base64) для галереи; копии удаляемых фото — в журнале.
+- FEATURE: Запрет привязок-кода в TV: @EVAL, @FILE, @SELECT, @CHUNK, @SNIPPET.
