@@ -5,8 +5,8 @@ namespace MxAgentTools\Core;
 /**
  * Границы инструмента query (произвольная выборка xPDO): без MODX, чтобы проверяться тестами.
  * Запрещены классы пользователей, сессий и журналов менеджера, заказов и покупателей miniShop2, токенов и клиентов
- * mxApi, журнала и загрузок самого пакета; у элементов-кода не отдаются и не
- * участвуют в условиях поля с кодом. Условия — только массивом xPDO с полями класса и известными
+ * mxApi, журнала и загрузок самого пакета. Код элементов (чанки, шаблоны, сниппеты, плагины) читается — query
+ * только читает. Условия — только массивом xPDO с полями класса и известными
  * операторами: ключ условия xPDO подставляет в SQL, поэтому произвольная строка в ключе была бы инъекцией.
  */
 final class QueryGuard
@@ -15,15 +15,6 @@ final class QueryGuard
     const DEFAULT_LIMIT = 50;
     const CLASS_RE = '/^[A-Za-z][A-Za-z0-9_]{1,63}$/';
     const DENIED_CLASS_RE = '/^(modUser.*|modSession|modManagerLog|modActiveUser|msOrder.*|msCustomer.*|mxApi.*|mxat.*)$/i';
-    /** Поля с кодом по классам (lowercase) */
-    const CODE_FIELDS = [
-        'modtemplate' => ['content'],
-        'modchunk' => ['snippet', 'content'],
-        'modsnippet' => ['snippet', 'content'],
-        'modplugin' => ['plugincode', 'content'],
-        'modscript' => ['content'],
-        'modelement' => ['content'],
-    ];
     const OPERATORS = ['=', '!=', '<>', '>', '<', '>=', '<=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN', 'IS', 'IS NOT'];
     const KEY_RE = '/^(?:(AND|OR):)?([A-Za-z_][A-Za-z0-9_]*)(?::([^:]+))?$/i';
 
@@ -38,20 +29,14 @@ final class QueryGuard
         }
     }
 
-    public static function hidden(string $class): array
-    {
-        return self::CODE_FIELDS[strtolower($class)] ?? [];
-    }
-
     /**
      * Поля выборки: пусто — все поля класса, кроме полей с кодом
      * @param string[] $fields все поля класса
      */
     public static function select(string $class, array $fields, array $select): array
     {
-        $hidden = self::hidden($class);
         if (!$select) {
-            return array_values(array_diff($fields, $hidden));
+            return array_values($fields);
         }
         foreach ($select as $field) {
             self::field($class, $fields, (string)$field);
@@ -122,9 +107,6 @@ final class QueryGuard
     {
         if (!in_array($field, $fields, true)) {
             throw new Refusal("query: у {$class} нет поля «{$field}»");
-        }
-        if (in_array($field, self::hidden($class), true)) {
-            throw new Refusal("query: поле {$class}.{$field} — код сайта, не отдаётся");
         }
         if ($filter && $field === 'value' && Secrets::isValueClass($class)) {
             throw new Refusal("query: {$class}.value — только в выборке, не в where и sort (значения секретов скрыты); "

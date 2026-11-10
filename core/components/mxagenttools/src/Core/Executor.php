@@ -4,6 +4,7 @@ namespace MxAgentTools\Core;
 
 use MxAgentTools\Entity\FileKeeperInterface;
 use MxAgentTools\Entity\SoftDeleteInterface;
+use MxAgentTools\Tool\BatchToolInterface;
 use MxAgentTools\Tool\ReadToolInterface;
 use MxAgentTools\Tool\WriteToolInterface;
 use Throwable;
@@ -40,11 +41,13 @@ class Executor
         $refs = $tool->targets($args);
         $before = $this->entities->snapshots($refs);
         $after = $tool->preview($args, $before);
-        return ['mode' => 'plan', 'targets' => self::keys($refs), 'before' => $before, 'after' => $after,
+        $out = ['mode' => 'plan', 'targets' => self::keys($refs), 'before' => $before, 'after' => $after,
             'diff' => Diff::lines($before, $after), 'hash' => Canon::hash($before)];
+        return $tool instanceof BatchToolInterface ? BatchView::apply($out, $before, $after) : $out;
     }
 
-    public function apply(WriteToolInterface $tool, array $args, string $expect, string $note): array
+    /** $batch — id пакетной операции клиента: записи порций одной операции откатываются вместе (BatchRollback) */
+    public function apply(WriteToolInterface $tool, array $args, string $expect, string $note, string $batch = ''): array
     {
         $refs = $tool->targets($args);
         $before = $this->entities->snapshots($refs);
@@ -55,7 +58,7 @@ class Executor
         $predicted = $tool->preview($args, $before);
         $entry = ['kind' => 'apply', 'endpoint' => $tool->name(), 'params' => $args, 'note' => $note, 'user' => $this->user,
             'status' => 'started', 'targets' => self::keys($refs), 'before' => $before, 'predicted' => $predicted,
-            'kept' => $this->keep($refs, $before, $predicted)];
+            'kept' => $this->keep($refs, $before, $predicted), 'batch' => $batch];
         $id = $this->journal->create($entry);
         try {
             $created = $tool->apply($args);
@@ -66,8 +69,13 @@ class Executor
         $after = $this->entities->snapshots(array_merge($refs, $created));
         $entry = ['status' => 'done', 'created' => self::keys($created), 'after' => $after] + $entry;
         $this->journal->write($id, $entry);
-        return ['mode' => 'apply', 'journal' => $id, 'targets' => $entry['targets'], 'created' => $entry['created'],
+        $out = ['mode' => 'apply', 'journal' => $id, 'targets' => $entry['targets'], 'created' => $entry['created'],
             'diff' => Diff::lines($before, $after), 'unexpected' => $this->unexpected($predicted, $after)];
+        if ($tool instanceof BatchToolInterface) {
+            $out = BatchView::apply($out + ['batch' => $batch], $before, $after);
+            unset($out['targets']);
+        }
+        return $out;
     }
 
     /**
@@ -94,7 +102,7 @@ class Executor
         if (!empty($s['entry']['rolled_back'])) {
             $out['rolled_back'] = (int)$s['entry']['rolled_back'];
         }
-        return $out;
+        return self::compact($out, $s['current'], $s['target']);
     }
 
     public function rollbackApply(int $id, string $expect, string $note): array
@@ -121,8 +129,23 @@ class Executor
         $after = $this->entities->snapshots($s['refs']);
         $this->journal->write($undoId, ['status' => 'done', 'after' => $after] + $undo);
         $this->journal->write($id, ['rolled_back' => $undoId] + $entry);
-        return ['mode' => 'apply', 'journal' => $undoId, 'journal_of' => $id, 'changed' => true, 'diverged' => $s['diverged'],
-            'diff' => Diff::lines($s['current'], $after), 'unexpected' => $this->unexpected($s['target'], $after)];
+        return self::compact(['mode' => 'apply', 'journal' => $undoId, 'journal_of' => $id, 'changed' => true,
+            'diverged' => $s['diverged'], 'diff' => Diff::lines($s['current'], $after),
+            'unexpected' => $this->unexpected($s['target'], $after)], $s['current'], $after);
+    }
+
+    /** Откат пакетной порции (много объектов) — тем же видом, что её план: сводка и первые объекты */
+    private static function compact(array $out, array $before, array $after): array
+    {
+        if (count($before + $after) <= BatchView::SHOW) {
+            return $out;
+        }
+        $out = BatchView::apply($out, $before, $after);
+        if (isset($out['divergence']) && count($out['divergence']) > 3 * BatchView::SHOW) {
+            $out['divergence'] = array_slice($out['divergence'], 0, 3 * BatchView::SHOW);
+        }
+        unset($out['targets']);
+        return $out;
     }
 
     /** Состояние для отката: ссылки, цель (before записи; созданное — null), текущее, его hash, расхождение */

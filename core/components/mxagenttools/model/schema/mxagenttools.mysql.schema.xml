@@ -19,6 +19,10 @@
         <field key="updatedon" dbtype="datetime" phptype="datetime" null="true"/>
         <field key="rolled_back" dbtype="int" precision="10" attributes="unsigned" phptype="integer" null="false" default="0"/>
         <field key="rollback_of" dbtype="int" precision="10" attributes="unsigned" phptype="integer" null="false" default="0" index="index"/>
+        <field key="batch" dbtype="varchar" precision="64" phptype="string" null="false" default="" index="index"/>
+        <index alias="batch" name="batch" primary="false" unique="false" type="BTREE">
+            <column key="batch" length="" collation="A" null="false"/>
+        </index>
         <index alias="endpoint" name="endpoint" primary="false" unique="false" type="BTREE">
             <column key="endpoint" length="" collation="A" null="false"/>
         </index>
@@ -48,6 +52,17 @@
         </index>
         <index alias="expires" name="expires" primary="false" unique="false" type="BTREE">
             <column key="expires" length="" collation="A" null="false"/>
+        </index>
+    </object>
+    <object class="mxatSelection" table="mxagenttools_selection" extends="xPDOSimpleObject">
+        <field key="selection" dbtype="char" precision="32" phptype="string" null="false" default="" index="index"/>
+        <field key="object_id" dbtype="int" precision="10" attributes="unsigned" phptype="integer" null="false" default="0"/>
+        <field key="createdon" dbtype="int" precision="10" attributes="unsigned" phptype="integer" null="false" default="0" index="index"/>
+        <index alias="selection" name="selection" primary="false" unique="false" type="BTREE">
+            <column key="selection" length="" collation="A" null="false"/>
+        </index>
+        <index alias="createdon" name="createdon" primary="false" unique="false" type="BTREE">
+            <column key="createdon" length="" collation="A" null="false"/>
         </index>
     </object>
 </model>

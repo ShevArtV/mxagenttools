@@ -42,11 +42,46 @@ MODX — `mxapi_agent_read`, `mxapi_agent_write` (политика пакета,
 `token`, `key`, `private`, `salt`, `hash`), наружу — `***` (`Core\Secrets`: чтение, query, снимки и diff в ответах
 записи, отката и журнала); hash плана — по настоящим значениям. Запись таких настроек разрешена.
 
+### Пакетные правки (1.1.0)
+
+Любой объём — порциями по `mxagenttools.batch_limit` (500) объектов:
+1. `GET /agent/resources/select` (`resource.select`) или `/agent/products/select` (`product.select`, раздел вместе с доп.
+   категориями) — фильтр фиксируется на сервере выборкой: id пишутся в `mxagenttools_selection` одним `INSERT … SELECT`
+   (без загрузки в PHP и без потолка), ответ — `selection`, `total`, `pages`, `page_size`, первые 20 id. Живёт
+   `mxagenttools.selection_ttl` (24 ч), старые чистятся при создании новой. Смена шаблона/родителя между порциями
+   выборку не сдвигает.
+2. Пакетные записи (`resource.batch` — template/parent/fields/tvs, `product.categories` — add/remove доп. категорий,
+   `product.prices` — percent/add/set, round 0/1/10/100 nearest/down/up, mode price/discount/undiscount, вместе с
+   модификациями msOptionsPrice2) принимают `selection` + `page` или явный `ids` (≤ лимита) и `batch` — id операции
+   клиента. Тот же plan → apply(expect); план — `total`, `changed`, `unchanged`, `summary` (поле → сколько объектов),
+   `diff` первых 20 объектов и `more`, hash — по всем снимкам (`Core\BatchView`). Запись — по одному объекту
+   процессором; упадёт посередине — журнал уже содержит «было» всей порции.
+3. Журнал: `batch` у записи, `GET /agent/journal?batch=…`; `POST /agent/journal/batch/{batch}/rollback` (plan/apply) —
+   откат всех порций операции, новые первыми (`Core\BatchRollback`); сбой посередине — `complete: false`, повтор
+   продолжит с оставшихся.
+
+### Чтение кода (1.1.0)
+
+`element.list` / `element.get` — чанки, шаблоны, сниппеты, плагины: поля, категория, код (у статичного — файл, если
+внутри сайта), события плагина, TV шаблона. `file.list` / `file.read` — каталог `pdotools_elements_path` (подстановки
+`{core_path}` и т.п.): realpath, выход за каталог и симлинки наружу — отказ, размер — до `mxagenttools.file_max_kb`
+(`Core\SafePath`, `Modx\CodeFiles`). `query` читает modChunk/modSnippet/modPlugin/modTemplate с полями кода. Записи
+кода нет.
+
+### Сжатие картинок при приёме (1.1.0)
+
+`POST /agent/uploads` ужимает картинку (JPEG, PNG, WebP, GIF без анимации): поворот по EXIF, вписывание в
+`max_width` × `max_height`, `quality`, `format` keep | jpeg | webp, `strip_metadata`. Умолчания —
+`mxagenttools.image_max_side` (2000), `image_quality` (82), `image_format` (keep), `image_strip_metadata` (1);
+значения для сайта агент берёт из инструкции сайта. Движок — Imagick, иначе GD (`Image\*`, по модулю на движок);
+SVG, не-картинки, анимация и уже малое — как есть. Ответ — `image {engine, before, after, processed, reason}`.
+
 ## Хранение
 
 Без файлов на диске сайта и без конфига: журнал и загрузки — таблицы пакета
 (`mxagenttools_journal`: id, endpoint, params, before, after, created, user, note, at, rolled_back;
-`mxagenttools_upload`: token, name, sha256, data, expires). Копии удалённых файлов галереи —
+`mxagenttools_upload`: token, name, sha256, data, expires; `mxagenttools_selection`: selection, object_id, createdon;
+у журнала — `batch`). Копии удалённых файлов галереи —
 в записи журнала (base64). Чистка загрузок старше срока — при каждом вызове upload.
 Настройки пакета (`mxagenttools.*`): лимит размера загрузки, срок жизни загрузки, глубина журнала.
 
@@ -83,15 +118,15 @@ Tool\WriteToolInterface  targets(array $args): EntityRef[]; preview(args, before
 Чтение: `resource.get`, `resource.find`, `resource.children`, `template.list` (шаблоны и их TV),
 `tv.get`, `tv.list`, `gallery.get`, `modification.list` (по товару), `setting.get`,
 `clientconfig.get`, `context.list`, `query` (произвольная выборка xPDO по классу, where,
-select, sort, limit ≤ 200; запрещены классы пользователей, сессий, менеджер-логов и
-элементов-кода: modUser*, msOrder*, msCustomer*, mxApi*, mxat*, modSession, modManagerLog, modActiveUser, modTemplate*content,
-modChunk/modSnippet/modPlugin — поле `snippet`/`content`/`plugincode` не отдаётся).
+select, sort, limit ≤ 200; запрещены классы пользователей, сессий, менеджер-логов: modUser*, msOrder*, msCustomer*,
+mxApi*, mxat*, modSession, modManagerLog, modActiveUser; код элементов читается),
+`element.list`, `element.get`, `file.list`, `file.read`, `resource.select`, `product.select`.
 
 Запись: `resource.create`, `resource.update` (поля, TV, данные товара, опции, доп. категории),
 `resource.delete`, `resource.undelete`, `tv.create`, `tv.update` (вкл. привязку к шаблонам),
 `tv.delete`, `gallery.upload`, `gallery.remove`, `gallery.sort`, `modification.create`,
 `modification.update`, `modification.delete`, `modification.images`, `setting.update`,
-`clientconfig.update`.
+`clientconfig.update`; пакетные — `resource.batch`, `product.categories`, `product.prices`.
 
 Имена инструментов = `id` эндпоинтов с префиксом `agent.`. Пакеты-расширения (miniShop2,
 msOptionsPrice2, Collections, ClientConfig) подгружаются, если установлены; эндпоинт, которому

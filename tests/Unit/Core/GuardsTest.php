@@ -81,19 +81,17 @@ class GuardsTest extends TestCase
         $this->assertSame(['value' => 'x'], QueryGuard::where('modResource', ['value'], ['value' => 'x']));
     }
 
-    public function testQueryHidesCodeFields(): void
+    public function testQueryReadsCodeFields(): void
     {
         $fields = ['id', 'name', 'snippet', 'description'];
-        $this->assertSame(['id', 'name', 'description'], QueryGuard::select('modChunk', $fields, []));
-        $this->assertSame(['id', 'templatename'], QueryGuard::select('modTemplate', ['id', 'templatename', 'content'], []));
-        $this->expectException(Refusal::class);
-        QueryGuard::select('modSnippet', $fields, ['snippet']);
+        $this->assertSame($fields, QueryGuard::select('modChunk', $fields, []));
+        $this->assertSame(['snippet'], QueryGuard::select('modSnippet', $fields, ['snippet']));
     }
 
-    public function testQueryWhereCannotProbeCode(): void
+    public function testQueryWhereSearchesCode(): void
     {
-        $this->expectException(Refusal::class);
-        QueryGuard::where('modPlugin', ['id', 'plugincode'], ['plugincode:LIKE' => '%pass%']);
+        $this->assertSame(['plugincode:LIKE' => '%OnLoadWebDocument%'],
+            QueryGuard::where('modPlugin', ['id', 'plugincode'], ['plugincode:LIKE' => '%OnLoadWebDocument%']));
     }
 
     /** @dataProvider badWhere */

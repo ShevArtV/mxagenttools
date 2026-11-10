@@ -35,6 +35,7 @@ class ToolEndpoint extends AgentEndpoint
         $tool = $this->tool;
         [$mode, $expect, $note] = self::writeMode($params);
         $args = self::toolArgs($params);
-        return $mode === 'apply' ? $executor->apply($tool, $args, $expect, $note) : $executor->plan($tool, $args);
+        return $mode === 'apply' ? $executor->apply($tool, $args, $expect, $note, mb_substr((string)($args['batch'] ?? ''), 0, 64))
+            : $executor->plan($tool, $args);
     }
 }

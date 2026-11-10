@@ -19,8 +19,8 @@ class Query extends AbstractTool implements ReadToolInterface
         . 'пусто — все), where в формате xPDO {"поле:оператор": значение} (операторы = != <> > < >= <= LIKE NOT LIKE IN '
         . 'NOT IN IS IS NOT; OR: в начале ключа — «или»; вложенные группы — списком объектов), sort {"поле": "ASC|DESC"}, '
         . 'limit до 200 (по умолчанию 50), offset. Закрыты классы пользователей, покупателей и заказов miniShop2 (msOrder*, '
-        . 'msCustomer*), сессий, журнала менеджера, токенов mxApi и журнала агента; код элементов (content шаблонов, '
-        . 'snippet чанков и сниппетов, plugincode плагинов) не отдаётся. У настроек (modSystemSetting, modContextSetting, '
+        . 'msCustomer*), сессий, журнала менеджера, токенов mxApi и журнала агента. Код элементов (modChunk, modTemplate, '
+        . 'modSnippet, modPlugin, modTemplateVar) читается вместе с полями кода — только чтение. У настроек (modSystemSetting, modContextSetting, '
         . 'cgSetting, cgContextValue) значение с ключом, похожим на секрет (pass, secret, token, key, private, salt, hash), — '
         . '«***», value не участвует в where и sort.';
 

@@ -2,13 +2,16 @@
 
 namespace MxAgentTools\Core;
 
+use MxAgentTools\Image\ImageOptions;
+use MxAgentTools\Image\Images;
 use RuntimeException;
 
 /**
  * Файлы от агента (POST /agent/uploads): base64 в теле → проверка размера и sha256 → хранилище по token.
  * Инструмент записи получает файл по token: path() выкладывает байты во временный файл <tmp>/<token>/<имя>
  * (ms2 gallery/upload берёт файл по пути и название фото — из имени файла, поэтому имя сохраняется).
- * Просроченное чистится при каждом приёме.
+ * Просроченное чистится при каждом приёме. Картинку с параметрами сжатия (ImageOptions) Image\Images ужимает до
+ * сохранения: sha256 сверяется по присланному, хранится и отдаётся — ужатое.
  */
 class Uploads
 {
@@ -22,9 +25,13 @@ class Uploads
     private $maxBytes;
     /** @var string */
     private $tmp;
+    /** @var Images|null */
+    private $images;
 
-    public function __construct(UploadStorageInterface $storage, int $ttlSeconds = 3600, int $maxBytes = 20971520, string $tmp = '')
+    public function __construct(UploadStorageInterface $storage, int $ttlSeconds = 3600, int $maxBytes = 20971520, string $tmp = '',
+        ?Images $images = null)
     {
+        $this->images = $images;
         $this->storage = $storage;
         $this->ttl = $ttlSeconds;
         $this->maxBytes = $maxBytes;
@@ -32,7 +39,7 @@ class Uploads
     }
 
     /** Принять файл: $base64 — содержимое, $sha256 — необязательная сверка */
-    public function put(string $base64, string $name, string $sha256): array
+    public function put(string $base64, string $name, string $sha256, ?ImageOptions $image = null): array
     {
         $this->storage->purge(time());
         $name = self::cleanName($name);
@@ -53,11 +60,16 @@ class Uploads
         if ($sha256 !== '' && !hash_equals(strtolower($sha256), $hash)) {
             throw new Refusal('файл пришёл повреждённым (sha256 не совпал) — пришлите ещё раз');
         }
+        $report = null;
+        if ($image !== null && $this->images !== null) {
+            [$data, $name, $report] = $this->images->prepare($data, $name, $image);
+            $hash = hash('sha256', $data);
+        }
         $token = bin2hex(random_bytes(16));
         $expires = time() + $this->ttl;
         $this->storage->save($token, $name, $hash, $data, $expires);
         return ['token' => $token, 'name' => $name, 'size' => strlen($data), 'sha256' => $hash,
-            'expires' => date('c', $expires)] + self::describe($data, $name);
+            'expires' => date('c', $expires)] + self::describe($data, $name) + ($report !== null ? ['image' => $report] : []);
     }
 
     /** Имя файла по token; просрочен или не было — отказ */

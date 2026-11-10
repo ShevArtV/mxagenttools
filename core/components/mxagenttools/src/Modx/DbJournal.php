@@ -14,9 +14,9 @@ use RuntimeException;
 class DbJournal implements JournalInterface
 {
     const COLUMNS = ['endpoint', 'kind', 'status', 'params', 'targets', 'before', 'predicted', 'after', 'created', 'kept',
-        'note', 'error', 'rolled_back', 'rollback_of'];
+        'note', 'error', 'rolled_back', 'rollback_of', 'batch'];
     const LIST_COLUMNS = ['id', 'endpoint', 'kind', 'status', 'targets', 'username', 'note', 'error', 'at', 'updatedon',
-        'rolled_back', 'rollback_of'];
+        'rolled_back', 'rollback_of', 'batch'];
 
     /** @var \modX */
     private $modx;
@@ -66,9 +66,12 @@ class DbJournal implements JournalInterface
         return $out;
     }
 
-    public function recent(int $limit, int $offset): array
+    public function recent(int $limit, int $offset, string $batch = ''): array
     {
         $q = $this->modx->newQuery('mxatJournal');
+        if ($batch !== '') {
+            $q->where(['batch' => $batch]);
+        }
         $q->select($this->modx->getSelectColumns('mxatJournal', 'mxatJournal', '', self::LIST_COLUMNS));
         $q->sortby('id', 'DESC');
         $q->limit($limit, $offset);
@@ -80,6 +83,17 @@ class DbJournal implements JournalInterface
             }
         }
         return $out;
+    }
+
+    public function batchEntries(string $batch): array
+    {
+        if ($batch === '') {
+            return [];
+        }
+        $q = $this->modx->newQuery('mxatJournal', ['batch' => $batch, 'kind' => 'apply']);
+        $q->select('id');
+        $q->sortby('id', 'DESC');
+        return ($q->prepare() && $q->stmt->execute()) ? array_map('intval', $q->stmt->fetchAll(\PDO::FETCH_COLUMN)) : [];
     }
 
     private function fill(\xPDOObject $row, array $entry): void

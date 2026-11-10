@@ -1,3 +1,11 @@
+1.1.0-beta
+==============
+- FEATURE: Пакетные правки любого объёма: resource.select / product.select фиксируют выборку на сервере (таблица mxagenttools_selection, INSERT … SELECT), resource.batch, product.categories, product.prices принимают selection + page (порция = mxagenttools.batch_limit, 500) или ids; план — сводка, diff первых 20 объектов, more; batch операции в журнале, GET /agent/journal?batch=…, откат операции целиком POST /agent/journal/batch/{batch}/rollback.
+- FEATURE: product.prices: percent / add / set, округление 0 / 1 / 10 / 100 (nearest, down, up), скидка (новая → price, прежняя → old_price) и снятие скидки, вместе с модификациями msOptionsPrice2.
+- FEATURE: Чтение кода: element.list / element.get (чанки, шаблоны, сниппеты, плагины, у статичных — файл), file.list / file.read (каталог pdotools_elements_path, realpath, без выхода наружу); query читает поля кода элементов.
+- FEATURE: Сжатие картинок при приёме (POST /agent/uploads): max_width, max_height, quality, format keep | jpeg | webp, strip_metadata, поворот по EXIF; Imagick, иначе GD; умолчания — mxagenttools.image_*.
+- Настройки: batch_limit, selection_ttl, file_max_kb, image_max_side, image_quality, image_format, image_strip_metadata. Журналу — колонка batch (доливается на upgrade).
+
 1.0.0-beta2
 ==============
 - FIX: setting.get отдавал пустой список: ORDER BY key без кавычек (key — зарезервированное слово MySQL); rank — тоже в кавычках.

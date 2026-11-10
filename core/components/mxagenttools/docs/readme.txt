@@ -23,6 +23,12 @@ POST с mode=apply и expect=hash пишет процессорами MODX и о
    (meta.read — каталог /meta/openapi).
    Секрет — в хранилище секретов агента.
 
+Пакетные правки: GET /agent/products/select (или /agent/resources/select) фиксирует выборку → selection, total,
+pages; затем product.prices / product.categories / resource.batch с selection, page = 0 … pages-1 и одним batch.
+Откат всей операции — POST /agent/journal/batch/{batch}/rollback.
+Код сайта читается (element.*, file.* в каталоге pdotools_elements_path), не пишется.
+Картинки при приёме ужимаются: max_width, max_height, quality, format, strip_metadata (умолчания — mxagenttools.image_*).
+
 Секреты: значения настроек (системных, контекстов, ClientConfig), ключ которых похож на секрет (pass, secret,
 token, key, private, salt, hash), в ответах — «***», в diff — «значение скрыто»; записывать их можно.
 query не читает пользователей, покупателей и заказы miniShop2 (msOrder*, msCustomer*), сессии, журнал

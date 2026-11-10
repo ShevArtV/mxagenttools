@@ -29,6 +29,7 @@ $xpdo_meta_map['mxatJournal'] = array (
     'updatedon' => NULL,
     'rolled_back' => 0,
     'rollback_of' => 0,
+    'batch' => '',
   ),
   'fieldMeta' => 
   array (
@@ -164,9 +165,34 @@ $xpdo_meta_map['mxatJournal'] = array (
       'default' => 0,
       'index' => 'index',
     ),
+    'batch' => 
+    array (
+      'dbtype' => 'varchar',
+      'precision' => '64',
+      'phptype' => 'string',
+      'null' => false,
+      'default' => '',
+      'index' => 'index',
+    ),
   ),
   'indexes' => 
   array (
+    'batch' => 
+    array (
+      'alias' => 'batch',
+      'primary' => false,
+      'unique' => false,
+      'type' => 'BTREE',
+      'columns' => 
+      array (
+        'batch' => 
+        array (
+          'length' => '',
+          'collation' => 'A',
+          'null' => false,
+        ),
+      ),
+    ),
     'endpoint' => 
     array (
       'alias' => 'endpoint',

@@ -2,6 +2,7 @@
 
 namespace MxAgentTools\Modx;
 
+use MxAgentTools\Core\BatchRollback;
 use MxAgentTools\Core\Entities;
 use MxAgentTools\Core\Executor;
 use MxAgentTools\Core\IdMap;
@@ -9,6 +10,8 @@ use MxAgentTools\Core\Processor;
 use MxAgentTools\Core\Uploads;
 use MxAgentTools\Entity;
 use MxAgentTools\Tool;
+use MxAgentTools\Image\Images;
+use MxAgentTools\Tool\Batch\BatchIds;
 use MxAgentTools\Tool\ToolInterface;
 
 /**
@@ -88,6 +91,11 @@ class Toolbox
         return new Executor($this->entities(), $this->journal(), (string)$this->modx->user->get('username'));
     }
 
+    public function batchRollback(): BatchRollback
+    {
+        return new BatchRollback($this->executor(), $this->journal());
+    }
+
     public function journal(): DbJournal
     {
         $this->prepare();
@@ -98,7 +106,17 @@ class Toolbox
     public function uploads(): Uploads
     {
         return new Uploads(new DbUploadStorage($this->modx), (int)$this->modx->getOption('mxagenttools.upload_ttl', null, 3600),
-            (int)round((float)$this->modx->getOption('mxagenttools.upload_max_mb', null, 20) * 1048576));
+            (int)round((float)$this->modx->getOption('mxagenttools.upload_max_mb', null, 20) * 1048576), '', new Images());
+    }
+
+    /** Умолчания сжатия картинок при приёме — настройки mxagenttools.image_* */
+    public function imageDefaults(): array
+    {
+        $o = function (string $k, $d) {
+            return $this->modx->getOption('mxagenttools.' . $k, null, $d);
+        };
+        return ['max_side' => (int)$o('image_max_side', 2000), 'quality' => (int)$o('image_quality', 82),
+            'format' => (string)$o('image_format', 'keep'), 'strip' => (bool)$o('image_strip_metadata', 1)];
     }
 
     /** @return ToolInterface[] */
@@ -115,11 +133,18 @@ class Toolbox
             new Tool\Tv\TvGet($s['tvs'], $s['tv']), new Tool\Tv\TvList($m), new Tool\Tv\TvCreate($s['processor'], $s['tvs'], $s['tv']),
             new Tool\Tv\TvUpdate($s['processor'], $s['tv']), new Tool\Tv\TvDelete($s['processor']),
             new Tool\Setting\SettingGet($m), new Tool\Setting\SettingUpdate($s['setting']),
+            new Tool\Code\ElementList($m), new Tool\Code\ElementGet($m, $s['code']), new Tool\Code\FileList($s['code']),
+            new Tool\Code\FileRead($s['code']),
+            new Tool\Batch\ResourceSelect($m, $s['selections'], $s['batch']->limit()),
+            new Tool\Batch\ResourceBatch($s['batch'], $s['resource']),
         ];
         if ($this->has(self::MINISHOP2)) {
             $mods = $s['mods'];
             array_push($tools, new Tool\Gallery\GalleryGet($s['files'], $mods), new Tool\Gallery\GalleryUpload($s['files'], $this->uploads()),
-                new Tool\Gallery\GalleryRemove($s['files'], $mods), new Tool\Gallery\GallerySort($s['files']));
+                new Tool\Gallery\GalleryRemove($s['files'], $mods), new Tool\Gallery\GallerySort($s['files']),
+                new Tool\Batch\ProductSelect($m, $s['selections'], $s['batch']->limit()),
+                new Tool\Batch\ProductCategories($s['batch'], $s['resource']),
+                new Tool\Batch\ProductPrices($s['batch'], $s['resource'], $mods));
         }
         if ($this->has(self::MSOPTIONSPRICE)) {
             foreach ([Tool\Modification\ModificationList::class, Tool\Modification\ModificationCreate::class,
@@ -168,7 +193,11 @@ class Toolbox
                 'resource' => new Entity\Resource($m, $processor, $tvs, $product),
                 'tv' => new Entity\Tv($m, $processor, $tvs, $ids), 'setting' => new Entity\Setting($m, $processor),
                 'mods' => $this->has(self::MSOPTIONSPRICE) ? new Modifications($m, $processor) : null,
-                'clientconfig' => new Entity\ClientConfig($m, $processor)];
+                'clientconfig' => new Entity\ClientConfig($m, $processor),
+                'code' => new CodeFiles($m, (int)$m->getOption('mxagenttools.file_max_kb', null, 512))];
+            $this->services['selections'] = new Selections($m, (int)$m->getOption('mxagenttools.selection_ttl', null, 86400));
+            $this->services['batch'] = new BatchIds($this->services['selections'],
+                (int)$m->getOption('mxagenttools.batch_limit', null, 500));
         }
         return $this->services;
     }

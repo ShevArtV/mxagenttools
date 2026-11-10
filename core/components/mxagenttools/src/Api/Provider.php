@@ -2,6 +2,7 @@
 
 namespace MxAgentTools\Api;
 
+use MxAgentTools\Api\Endpoint\JournalBatchRollbackEndpoint;
 use MxAgentTools\Api\Endpoint\JournalGetEndpoint;
 use MxAgentTools\Api\Endpoint\JournalListEndpoint;
 use MxAgentTools\Api\Endpoint\JournalRollbackEndpoint;
@@ -38,7 +39,7 @@ class Provider implements ProviderInterface
             $endpoints[] = new ToolEndpoint($tool, $toolbox);
         }
         array_push($endpoints, new JournalListEndpoint($toolbox), new JournalGetEndpoint($toolbox),
-            new JournalRollbackEndpoint($toolbox), new UploadEndpoint($toolbox));
+            new JournalRollbackEndpoint($toolbox), new JournalBatchRollbackEndpoint($toolbox), new UploadEndpoint($toolbox));
         return $endpoints;
     }
 }

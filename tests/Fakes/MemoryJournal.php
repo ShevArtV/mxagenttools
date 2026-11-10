@@ -34,8 +34,22 @@ class MemoryJournal implements JournalInterface
         return ['id' => $id] + $this->entries[$id];
     }
 
-    public function recent(int $limit, int $offset): array
+    public function recent(int $limit, int $offset, string $batch = ''): array
     {
-        return array_slice(array_reverse($this->entries, true), $offset, $limit, true);
+        $rows = array_filter($this->entries, function ($e) use ($batch) {
+            return $batch === '' || ($e['batch'] ?? '') === $batch;
+        });
+        return array_slice(array_reverse($rows, true), $offset, $limit, true);
+    }
+
+    public function batchEntries(string $batch): array
+    {
+        $ids = [];
+        foreach (array_reverse($this->entries, true) as $id => $e) {
+            if ($batch !== '' && ($e['batch'] ?? '') === $batch && ($e['kind'] ?? '') === 'apply') {
+                $ids[] = $id;
+            }
+        }
+        return $ids;
     }
 }

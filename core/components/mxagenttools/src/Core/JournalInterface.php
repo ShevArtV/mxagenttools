@@ -16,6 +16,9 @@ interface JournalInterface
     /** Запись целиком; нет — Refusal */
     public function read(int $id): array;
 
-    /** Последние записи (новые первыми), без снимков */
-    public function recent(int $limit, int $offset): array;
+    /** Последние записи (новые первыми), без снимков; batch — только записи этой пакетной операции */
+    public function recent(int $limit, int $offset, string $batch = ''): array;
+
+    /** id записей kind=apply пакетной операции batch, новые первыми — порядок отката */
+    public function batchEntries(string $batch): array;
 }
