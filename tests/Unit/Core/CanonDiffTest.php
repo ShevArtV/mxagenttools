@@ -57,6 +57,23 @@ class CanonDiffTest extends TestCase
         $this->assertSame(['r:1 t: у бота «bot» → сейчас «human» → станет «old»'], $lines);
     }
 
+    public function testEmptyListBecomesItemsWithoutNoiseLine(): void
+    {
+        $lines = Diff::lines(['gallery:9' => ['files' => []]], ['gallery:9' => ['files' => [['id' => 5, 'name' => 'a']]]]);
+        $this->assertSame(['gallery:9 files[0].id: нет → «5»', 'gallery:9 files[0].name: нет → «a»'], $lines);
+        $this->assertSame(['gallery:9 files[0].id: «5» → нет'],
+            Diff::lines(['gallery:9' => ['files' => [['id' => 5]]]], ['gallery:9' => ['files' => []]]));
+    }
+
+    public function testUnexpectedOnlyNamedFields(): void
+    {
+        $predicted = ['gallery:9' => ['files' => [['id' => 0, 'name' => 'a', 'description' => 'x']]], 'resource:5' => ['alias' => 'new']];
+        $after = ['gallery:9' => ['files' => [['id' => 77, 'name' => 'a', 'description' => 'x', 'url' => '/u.jpg', 'hash' => 'h']]],
+            'resource:5' => ['alias' => 'new-1']];
+        $this->assertSame(['resource:5 alias: план «new» → записано «new-1»'], Diff::unexpected($predicted, $after));
+        $this->assertSame(['resource:7: не создан'], Diff::unexpected(['resource:7' => ['id' => 0]], ['resource:7' => null]));
+    }
+
     public function testEntityRef(): void
     {
         $ref = EntityRef::fromKey('setting:site_name');

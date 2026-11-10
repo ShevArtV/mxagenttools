@@ -33,7 +33,7 @@ class ContextList extends AbstractTool implements ReadToolInterface
             $settings[(string)$s->get('context_key')][(string)$s->get('key')] = (string)$s->get('value');
         }
         $q = $this->modx->newQuery('modContext', ['key:!=' => 'mgr']);
-        $q->sortby('rank', 'ASC');
+        $q->sortby('`rank`', 'ASC'); // RANK зарезервирован в MySQL 8
         $out = [];
         foreach ($this->modx->getIterator('modContext', $q, false) as $c) {
             $key = (string)$c->get('key');

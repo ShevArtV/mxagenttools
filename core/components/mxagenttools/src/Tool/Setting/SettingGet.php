@@ -43,7 +43,7 @@ class SettingGet extends AbstractTool implements ReadToolInterface
         if (Values::text($args, 'namespace') !== '') {
             $q->where(['namespace' => Values::text($args, 'namespace')]);
         }
-        $q->sortby('key', 'ASC');
+        $q->sortby('`key`', 'ASC'); // key — зарезервированное слово MySQL: без кавычек выборка падает и список пуст
         $q->limit(200);
         $out = [];
         foreach ($this->modx->getIterator('modSystemSetting', $q, false) as $s) {

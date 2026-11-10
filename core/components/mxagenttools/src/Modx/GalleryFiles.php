@@ -38,7 +38,7 @@ class GalleryFiles
     public function files(int $rid): array
     {
         $q = $this->modx->newQuery('msProductFile', ['product_id' => $rid, 'parent' => 0]);
-        $q->sortby('rank');
+        $q->sortby('`rank`'); // RANK зарезервирован в MySQL 8
         $q->sortby('id');
         $out = [];
         foreach ($this->modx->getIterator('msProductFile', $q, false) as $f) {

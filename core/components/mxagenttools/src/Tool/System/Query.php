@@ -60,6 +60,10 @@ class Query extends AbstractTool implements ReadToolInterface
         if ($where) {
             $q->where($where);
         }
+        // Наследник modResource (msProduct, msCategory…) — сама xPDO class_key не фильтрует, и msProduct отдавал категории
+        if (in_array('class_key', $fields, true) && strcasecmp($class, 'modResource') !== 0) {
+            $q->where(['class_key' => $this->modx->loadClass($class) ?: $class]);
+        }
         $total = $this->modx->getCount($class, clone $q);
         $secret = Secrets::isValueClass($class) && in_array('value', $select, true);
         $keyField = strtolower($class) === 'cgcontextvalue' ? 'setting' : 'key';

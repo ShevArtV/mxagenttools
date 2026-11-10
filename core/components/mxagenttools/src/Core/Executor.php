@@ -204,8 +204,7 @@ class Executor
     /** Где записалось не так, как предсказал план (плагины, авто-псевдоним, права) */
     private function unexpected(array $predicted, array $after): array
     {
-        $common = array_intersect_key($predicted, $after);
-        return Diff::lines($common, array_intersect_key($after, $common));
+        return Diff::unexpected($predicted, array_intersect_key($after, $predicted));
     }
 
     private function fail(int $id, array $entry, Throwable $e): void

@@ -56,7 +56,7 @@ class Modifications
     public function ofProduct(int $rid): array
     {
         $q = $this->modx->newQuery('msopModification', ['rid' => $rid]);
-        $q->sortby('rank');
+        $q->sortby('`rank`'); // RANK зарезервирован в MySQL 8
         $q->sortby('id');
         $q->select('id');
         $out = [];
@@ -85,7 +85,7 @@ class Modifications
     public function images(int $mid): array
     {
         $q = $this->modx->newQuery('msopModificationImage', ['mid' => $mid]);
-        $q->sortby('rank');
+        $q->sortby('`rank`'); // RANK зарезервирован в MySQL 8
         $q->sortby('image');
         $out = [];
         foreach ($this->modx->getIterator('msopModificationImage', $q, false) as $img) {

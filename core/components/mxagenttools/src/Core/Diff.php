@@ -43,12 +43,57 @@ final class Diff
             foreach (self::keys($fb, $fa) as $path) {
                 $vb = $fb[$path] ?? null;
                 $va = $fa[$path] ?? null;
-                if ($vb !== $va) {
+                if ($vb !== $va && !self::emptyListOf($path, $vb, $va, $fb, $fa)) {
                     $out[] = "{$key} {$path}: " . self::show($vb) . ' → ' . self::show($va);
                 }
             }
         }
         return $out;
+    }
+
+    /**
+     * Где запись разошлась с планом: только поля, которые план назвал. Поля, которых в плане не было (их заполняет
+     * сайт: path, url, hash фото), и id 0 нового объекта → настоящий id — не расхождение.
+     * @return string[]
+     */
+    public static function unexpected(array $predicted, array $after): array
+    {
+        $out = [];
+        foreach (self::keys($predicted, $after) as $key) {
+            $p = $predicted[$key] ?? null;
+            $a = $after[$key] ?? null;
+            if ($p === null || $a === null) {
+                if (($p === null) !== ($a === null) && array_key_exists($key, $predicted)) {
+                    $out[] = "{$key}: " . ($a === null ? 'не создан' : 'не удалён');
+                }
+                continue;
+            }
+            $fp = self::flatten($p);
+            $fa = self::flatten($a);
+            foreach ($fp as $path => $vp) {
+                $va = $fa[$path] ?? null;
+                if ($vp === null || $vp === $va || self::emptyListOf($path, $vp, $va, $fp, $fa)
+                    || ($vp === '0' && preg_match('/(^|\.)id$/', (string)$path))) {
+                    continue;
+                }
+                $out[] = "{$key} {$path}: план " . self::show($vp) . ' → записано ' . self::show($va);
+            }
+        }
+        return $out;
+    }
+
+    /** «[]» с одной стороны и элементы списка с другой — не отличие, его покажут строки элементов */
+    private static function emptyListOf(string $path, ?string $x, ?string $y, array $fx, array $fy): bool
+    {
+        if ($x !== '[]' && $y !== '[]') {
+            return false;
+        }
+        foreach (array_keys($x === '[]' ? $fy : $fx) as $other) {
+            if (strpos((string)$other, $path . '[') === 0 || strpos((string)$other, $path . '.') === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
