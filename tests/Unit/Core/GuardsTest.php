@@ -42,7 +42,9 @@ class GuardsTest extends TestCase
 
     public function testQueryDeniedClasses(): void
     {
-        foreach (['modUser', 'modUserProfile', 'MODUSERGROUPMEMBER', 'modSession', 'modManagerLog', 'modActiveUser'] as $class) {
+        foreach (['modUser', 'modUserProfile', 'MODUSERGROUPMEMBER', 'modSession', 'modManagerLog', 'modActiveUser',
+            'modUserSetting', 'msOrder', 'msOrderAddress', 'msOrderProduct', 'msOrderLog', 'msCustomerProfile', 'msCustomer',
+            'mxApiToken', 'mxApiClient', 'mxatJournal', 'mxatUpload'] as $class) {
             try {
                 QueryGuard::checkClass($class);
                 $this->fail("{$class} должен быть закрыт");
@@ -53,6 +55,30 @@ class GuardsTest extends TestCase
         QueryGuard::checkClass('modResource');
         $this->expectException(Refusal::class);
         QueryGuard::checkClass('modResource; DROP');
+    }
+
+    public function testQuerySettingValueOnlyInSelect(): void
+    {
+        $fields = ['key', 'value', 'xtype', 'namespace'];
+        $this->assertSame(['key', 'value'], QueryGuard::select('modSystemSetting', $fields, ['key', 'value']));
+        $this->assertSame(['key:LIKE' => '%pass%'], QueryGuard::where('modSystemSetting', $fields, ['key:LIKE' => '%pass%']));
+        foreach (['modSystemSetting', 'modContextSetting', 'cgSetting', 'cgContextValue'] as $class) {
+            foreach ([['value:LIKE' => 'a%'], ['OR:value' => 'x'], [['value:>' => 'm']]] as $where) {
+                try {
+                    QueryGuard::where($class, $fields, $where);
+                    $this->fail("{$class}: value в where");
+                } catch (Refusal $e) {
+                    $this->assertStringContainsString('value', $e->getMessage());
+                }
+            }
+            try {
+                QueryGuard::sort($class, $fields, ['value' => 'ASC']);
+                $this->fail("{$class}: value в sort");
+            } catch (Refusal $e) {
+                $this->addToAssertionCount(1);
+            }
+        }
+        $this->assertSame(['value' => 'x'], QueryGuard::where('modResource', ['value'], ['value' => 'x']));
     }
 
     public function testQueryHidesCodeFields(): void

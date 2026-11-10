@@ -15,11 +15,18 @@ POST с mode=apply и expect=hash пишет процессорами MODX и о
 Подключение на сайте:
 1. Установить mxApi (>= 1.2.1) и mxAgentTools. Сбросить кэш (иначе плагин регистрации не подхватится).
 2. Завести пользователя MODX для агента. Его группе выдать:
-   - Namespace Access: namespace mxapi, политика mxagenttoolsAgent (load, mxapi_agent_read, mxapi_agent_write);
+   - Namespace Access: namespace mxapi, политика mxagenttoolsAgent (load, mxapi_auth_token, mxapi_auth_revoke,
+     mxapi_meta_read, mxapi_agent_read, mxapi_agent_write) — mxapiDefault интеграции не выдавать;
    - Context Access: контекст mgr, политика с правами процессоров, которые агенту нужны
      (save_document, delete_document, undelete_document, save_tv, settings, msproduct_save, msproductfile_save…).
-3. Во вкладке mxApi пользователя — клиент client_credentials со scope "agent.read agent.write".
+3. Во вкладке mxApi пользователя — клиент client_credentials со scope "agent.read agent.write meta.read"
+   (meta.read — каталог /meta/openapi).
    Секрет — в хранилище секретов агента.
+
+Секреты: значения настроек (системных, контекстов, ClientConfig), ключ которых похож на секрет (pass, secret,
+token, key, private, salt, hash), в ответах — «***», в diff — «значение скрыто»; записывать их можно.
+query не читает пользователей, покупателей и заказы miniShop2 (msOrder*, msCustomer*), сессии, журнал
+менеджера, токены и клиентов mxApi, журнал и загрузки пакета.
 
 Настройки: mxagenttools.upload_max_mb, mxagenttools.upload_ttl (секунды), mxagenttools.journal_depth.
 Таблицы: mxagenttools_journal, mxagenttools_upload.

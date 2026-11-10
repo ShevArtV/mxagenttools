@@ -4,7 +4,8 @@ namespace MxAgentTools\Core;
 
 /**
  * Границы инструмента query (произвольная выборка xPDO): без MODX, чтобы проверяться тестами.
- * Запрещены классы пользователей, сессий и журналов менеджера; у элементов-кода не отдаются и не
+ * Запрещены классы пользователей, сессий и журналов менеджера, заказов и покупателей miniShop2, токенов и клиентов
+ * mxApi, журнала и загрузок самого пакета; у элементов-кода не отдаются и не
  * участвуют в условиях поля с кодом. Условия — только массивом xPDO с полями класса и известными
  * операторами: ключ условия xPDO подставляет в SQL, поэтому произвольная строка в ключе была бы инъекцией.
  */
@@ -13,7 +14,7 @@ final class QueryGuard
     const MAX_LIMIT = 200;
     const DEFAULT_LIMIT = 50;
     const CLASS_RE = '/^[A-Za-z][A-Za-z0-9_]{1,63}$/';
-    const DENIED_CLASS_RE = '/^(modUser.*|modSession|modManagerLog|modActiveUser)$/i';
+    const DENIED_CLASS_RE = '/^(modUser.*|modSession|modManagerLog|modActiveUser|msOrder.*|msCustomer.*|mxApi.*|mxat.*)$/i';
     /** Поля с кодом по классам (lowercase) */
     const CODE_FIELDS = [
         'modtemplate' => ['content'],
@@ -32,7 +33,8 @@ final class QueryGuard
             throw new Refusal("query: недопустимое имя класса {$class}");
         }
         if (preg_match(self::DENIED_CLASS_RE, $class)) {
-            throw new Refusal("query: класс {$class} закрыт (пользователи, сессии, журнал менеджера)");
+            throw new Refusal("query: класс {$class} закрыт (пользователи, покупатели и заказы, сессии, журнал менеджера, "
+                . 'токены API, журнал агента)');
         }
     }
 
@@ -73,7 +75,7 @@ final class QueryGuard
             if (!preg_match(self::KEY_RE, $key, $m)) {
                 throw new Refusal("query: where — недопустимый ключ «{$key}»");
             }
-            self::field($class, $fields, $m[2]);
+            self::field($class, $fields, $m[2], true);
             $op = strtoupper(trim($m[3] ?? '='));
             if (!in_array($op, self::OPERATORS, true)) {
                 throw new Refusal("query: where — оператор «{$op}» не поддерживается, есть " . implode(' ', self::OPERATORS));
@@ -96,7 +98,7 @@ final class QueryGuard
     {
         $out = [];
         foreach ($sort as $field => $dir) {
-            self::field($class, $fields, (string)$field);
+            self::field($class, $fields, (string)$field, true);
             $dir = strtoupper((string)$dir);
             if (!in_array($dir, ['ASC', 'DESC'], true)) {
                 throw new Refusal("query: sort {$field} — ASC или DESC");
@@ -115,13 +117,18 @@ final class QueryGuard
         return $limit;
     }
 
-    private static function field(string $class, array $fields, string $field): void
+    /** $filter — поле в where/sort: значение настройки там подбиралось бы перебором, поэтому value закрыт */
+    private static function field(string $class, array $fields, string $field, bool $filter = false): void
     {
         if (!in_array($field, $fields, true)) {
             throw new Refusal("query: у {$class} нет поля «{$field}»");
         }
         if (in_array($field, self::hidden($class), true)) {
             throw new Refusal("query: поле {$class}.{$field} — код сайта, не отдаётся");
+        }
+        if ($filter && $field === 'value' && Secrets::isValueClass($class)) {
+            throw new Refusal("query: {$class}.value — только в выборке, не в where и sort (значения секретов скрыты); "
+                . 'поиск по значению настроек — setting.get');
         }
     }
 }

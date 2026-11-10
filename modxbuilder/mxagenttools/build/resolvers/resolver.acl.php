@@ -6,7 +6,9 @@
  * созданный mxApi. Незаведённое право mxApi считает отсутствующим (fail-closed) — без резолвера любой
  * non-sudo получил бы insufficient_permission.
  *
- * Политика `mxagenttoolsAgent` (на mxapiTemplate): load + mxapi_agent_read + mxapi_agent_write. `load` обязателен:
+ * Политика `mxagenttoolsAgent` (на mxapiTemplate): load + mxapi_agent_read + mxapi_agent_write + права ядра mxApi,
+ * без которых клиент агента не работает: mxapi_auth_token (выпуск токена), mxapi_auth_revoke, mxapi_meta_read
+ * (каталог /meta/openapi — по нему агент узнаёт инструменты). `load` обязателен:
  * проверка прав идёт через modNamespace, и MODX сам требует load при загрузке объекта. В mxapiDefault права
  * агента НЕ добавляются: иначе каждый, кому выдан API, получил бы запись контента. Политику выдаёт администратор:
  * Access Controls → группа пользователя агента → Namespace Access → mxapi → mxagenttoolsAgent. Группам пакет
@@ -51,7 +53,8 @@ if ($transport->xpdo) {
                 $modx->log(modX::LOG_LEVEL_INFO, '[mxagenttools] Добавлено право: ' . $name);
             }
 
-            $data = ['load' => true];
+            // права ядра mxApi (заводит сам mxApi в mxapiTemplate) — клиенту агента нужны токен и каталог
+            $data = ['load' => true, 'mxapi_auth_token' => true, 'mxapi_auth_revoke' => true, 'mxapi_meta_read' => true];
             foreach (array_keys($permissions) as $name) {
                 $data[$name] = true;
             }

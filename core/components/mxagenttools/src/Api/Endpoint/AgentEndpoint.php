@@ -3,6 +3,7 @@
 namespace MxAgentTools\Api\Endpoint;
 
 use MxAgentTools\Core\Refusal;
+use MxAgentTools\Core\Secrets;
 use MxAgentTools\Modx\Toolbox;
 use MxApi\Core\Endpoint\AbstractEndpoint;
 use MxApi\Core\Endpoint\EndpointContext;
@@ -31,7 +32,8 @@ abstract class AgentEndpoint extends AbstractEndpoint
         $params = $this->readParams($request);
         $this->toolbox->prepare();
         try {
-            return Response::success($this->run($params));
+            // значения настроек-секретов в снимках и diff — маской (Core\Secrets); hash уже посчитан по настоящим
+            return Response::success(Secrets::output($this->run($params)));
         } catch (Refusal $e) {
             throw new ApiException($e->code(), $e->getMessage(), $e->code() === Refusal::STALE_PLAN ? 409 : 422, $e->details());
         } catch (\RuntimeException $e) {

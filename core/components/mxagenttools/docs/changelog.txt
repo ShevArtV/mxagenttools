@@ -6,3 +6,5 @@
 - FEATURE: Журнал записей в таблице пакета, откат любой записи (plan/apply, расхождение «у бота → сейчас → станет»), откат отката.
 - FEATURE: Приём файлов (POST /agent/uploads, base64) для галереи; копии удаляемых фото — в журнале.
 - FEATURE: Запрет привязок-кода в TV: @EVAL, @FILE, @SELECT, @CHUNK, @SNIPPET.
+- FEATURE: Значения настроек-секретов (ключ с pass, secret, token, key, private, salt, hash) в чтении, плане, журнале — «***»; query закрыт для заказов и покупателей miniShop2, mxApi и журнала пакета; value настроек — не в where/sort.
+- FEATURE: Политика mxagenttoolsAgent включает права ядра mxApi для клиента агента: mxapi_auth_token, mxapi_auth_revoke, mxapi_meta_read.

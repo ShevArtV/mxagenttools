@@ -38,6 +38,10 @@ MODX — `mxapi_agent_read`, `mxapi_agent_write` (политика пакета,
 - Отказ по сути (нет объекта, запрещённая привязка `@EVAL`) — ошибка mxApi с кодом `refusal`
   и текстом для человека; сбой — `processor_error`/`internal_error` штатно.
 
+Секреты: значение настройки (системной, контекста, ClientConfig), ключ которой похож на секрет (`pass`, `secret`,
+`token`, `key`, `private`, `salt`, `hash`), наружу — `***` (`Core\Secrets`: чтение, query, снимки и diff в ответах
+записи, отката и журнала); hash плана — по настоящим значениям. Запись таких настроек разрешена.
+
 ## Хранение
 
 Без файлов на диске сайта и без конфига: журнал и загрузки — таблицы пакета
@@ -80,7 +84,7 @@ Tool\WriteToolInterface  targets(array $args): EntityRef[]; preview(args, before
 `tv.get`, `tv.list`, `gallery.get`, `modification.list` (по товару), `setting.get`,
 `clientconfig.get`, `context.list`, `query` (произвольная выборка xPDO по классу, where,
 select, sort, limit ≤ 200; запрещены классы пользователей, сессий, менеджер-логов и
-элементов-кода: modUser*, modSession, modManagerLog, modActiveUser, modTemplate*content,
+элементов-кода: modUser*, msOrder*, msCustomer*, mxApi*, mxat*, modSession, modManagerLog, modActiveUser, modTemplate*content,
 modChunk/modSnippet/modPlugin — поле `snippet`/`content`/`plugincode` не отдаётся).
 
 Запись: `resource.create`, `resource.update` (поля, TV, данные товара, опции, доп. категории),
@@ -98,7 +102,7 @@ msOptionsPrice2, Collections, ClientConfig) подгружаются, если �
 1. Поставить mxApi и mxAgentTools (mxPackages).
 2. Завести пользователя MODX для агента, дать группе политику с `mxapi_agent_*` и правами
    на процессоры ресурсов/TV/ms2 (контекст `mgr`).
-3. Во вкладке mxApi пользователя — клиент client_credentials со scope `agent.read agent.write`.
+3. Во вкладке mxApi пользователя — клиент client_credentials со scope `agent.read agent.write meta.read`.
    Секрет клиента — в хранилище секретов агента, не в репо.
 
 Конфига в репо сайта нет. Правила работы с контентом сайта — в документации сайта, не в пакете.

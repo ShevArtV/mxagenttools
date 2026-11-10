@@ -4,6 +4,7 @@ namespace MxAgentTools\Tool\System;
 
 use MxAgentTools\Core\QueryGuard;
 use MxAgentTools\Core\Refusal;
+use MxAgentTools\Core\Secrets;
 use MxAgentTools\Core\Values;
 use MxAgentTools\Tool\AbstractTool;
 use MxAgentTools\Tool\ReadToolInterface;
@@ -17,8 +18,11 @@ class Query extends AbstractTool implements ReadToolInterface
     const DESCRIPTION = 'Чтение любой таблицы модели по классу xPDO, когда готового инструмента нет: class, select (поля; '
         . 'пусто — все), where в формате xPDO {"поле:оператор": значение} (операторы = != <> > < >= <= LIKE NOT LIKE IN '
         . 'NOT IN IS IS NOT; OR: в начале ключа — «или»; вложенные группы — списком объектов), sort {"поле": "ASC|DESC"}, '
-        . 'limit до 200 (по умолчанию 50), offset. Закрыты классы пользователей, сессий и журнала менеджера; код '
-        . 'элементов (content шаблонов, snippet чанков и сниппетов, plugincode плагинов) не отдаётся.';
+        . 'limit до 200 (по умолчанию 50), offset. Закрыты классы пользователей, покупателей и заказов miniShop2 (msOrder*, '
+        . 'msCustomer*), сессий, журнала менеджера, токенов mxApi и журнала агента; код элементов (content шаблонов, '
+        . 'snippet чанков и сниппетов, plugincode плагинов) не отдаётся. У настроек (modSystemSetting, modContextSetting, '
+        . 'cgSetting, cgContextValue) значение с ключом, похожим на секрет (pass, secret, token, key, private, salt, hash), — '
+        . '«***», value не участвует в where и sort.';
 
     /** @var \modX */
     private $modx;
@@ -57,7 +61,10 @@ class Query extends AbstractTool implements ReadToolInterface
             $q->where($where);
         }
         $total = $this->modx->getCount($class, clone $q);
-        $q->select($this->modx->getSelectColumns($class, $q->getAlias(), '', $select));
+        $secret = Secrets::isValueClass($class) && in_array('value', $select, true);
+        $keyField = strtolower($class) === 'cgcontextvalue' ? 'setting' : 'key';
+        $query = $secret && !in_array($keyField, $select, true) ? array_merge($select, [$keyField]) : $select;
+        $q->select($this->modx->getSelectColumns($class, $q->getAlias(), '', $query));
         foreach ($sort as [$field, $dir]) {
             $q->sortby($this->modx->escape($q->getAlias()) . '.' . $this->modx->escape($field), $dir);
         }
@@ -66,6 +73,34 @@ class Query extends AbstractTool implements ReadToolInterface
         if ($q->prepare() && $q->stmt->execute()) {
             $rows = $q->stmt->fetchAll(\PDO::FETCH_ASSOC);
         }
+        if ($secret) {
+            $rows = $this->mask($rows, $keyField, $select);
+        }
         return ['class' => $class, 'total' => $total, 'rows' => $rows];
+    }
+
+    /** Значения настроек-секретов — маской; ключ, добавленный только ради проверки, из строки убирается */
+    private function mask(array $rows, string $keyField, array $select): array
+    {
+        $keys = [];
+        if ($keyField === 'setting') {
+            $ids = array_unique(array_map('intval', array_column($rows, 'setting')));
+            if ($ids) {
+                foreach ($this->modx->getIterator('cgSetting', ['id:IN' => $ids], false) as $s) {
+                    $keys[(int)$s->get('id')] = (string)$s->get('key');
+                }
+            }
+        }
+        foreach ($rows as $i => $row) {
+            $key = $keyField === 'setting' ? ($keys[(int)$row['setting']] ?? '') : (string)$row['key'];
+            if (array_key_exists('value', $row) && Secrets::isSecretKey($key)) {
+                $row['value'] = Secrets::mask($row['value']);
+            }
+            if (!in_array($keyField, $select, true)) {
+                unset($row[$keyField]);
+            }
+            $rows[$i] = $row;
+        }
+        return $rows;
     }
 }

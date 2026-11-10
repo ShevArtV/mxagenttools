@@ -2,6 +2,7 @@
 
 namespace MxAgentTools\Tool\Setting;
 
+use MxAgentTools\Core\Secrets;
 use MxAgentTools\Core\Values;
 use MxAgentTools\Tool\AbstractTool;
 use MxAgentTools\Tool\ReadToolInterface;
@@ -12,7 +13,8 @@ class SettingGet extends AbstractTool implements ReadToolInterface
     const TITLE = 'Системные настройки';
     const PATH = '/agent/settings';
     const DESCRIPTION = 'Системные настройки MODX (modSystemSetting): key, value, xtype, namespace, area. key — одна настройка, '
-        . 'иначе поиск по тексту в ключе (query) и/или namespace, до 200 штук.';
+        . 'иначе поиск по тексту в ключе (query) и/или namespace, до 200 штук. Значение настройки с ключом, похожим на '
+        . 'секрет (pass, secret, token, key, private, salt, hash), — «***»: записать её можно, прочитать — нет.';
 
     /** @var \modX */
     private $modx;
@@ -45,8 +47,8 @@ class SettingGet extends AbstractTool implements ReadToolInterface
         $q->limit(200);
         $out = [];
         foreach ($this->modx->getIterator('modSystemSetting', $q, false) as $s) {
-            $out[] = ['key' => $s->get('key'), 'value' => (string)$s->get('value'), 'xtype' => $s->get('xtype'),
-                'namespace' => $s->get('namespace'), 'area' => $s->get('area')];
+            $out[] = Secrets::row(['key' => $s->get('key'), 'value' => (string)$s->get('value'), 'xtype' => $s->get('xtype'),
+                'namespace' => $s->get('namespace'), 'area' => $s->get('area')]);
         }
         return ['settings' => $out];
     }
