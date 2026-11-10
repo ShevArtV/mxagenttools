@@ -23,7 +23,7 @@ class ProductPrices extends AbstractTool implements BatchToolInterface
     const PATH = '/agent/products/prices';
     const DESCRIPTION = 'Изменить цены многих товаров (и их модификаций msOptionsPrice2, если modifications не 0) одним планом. '
         . 'op: percent (value — ±проценты), add (±сумма), set (ровно value). round: 0 — до копеек, 1 / 10 / 100 — до шага; '
-        . 'direction: nearest | down | up. mode: price — меняется только цена; discount — скидка: новая цена → price, прежняя '
+        . 'direction: nearest | down | up. price_mode: price — меняется только цена; discount — скидка: новая цена → price, прежняя '
         . '→ old_price (если old_price уже стоит, база — она); undiscount — снять скидку: old_price → price, old_price = 0 '
         . '(op и value не нужны). Объекты — ids или selection + page из product.select (раздел вместе с доп. категориями). '
         . 'Цена ≤ 0 — отказ всего плана. План: total, changed, summary, diff первых 20 объектов, more.';
@@ -50,8 +50,8 @@ class ProductPrices extends AbstractTool implements BatchToolInterface
             'round' => ['type' => 'integer', 'enum' => PriceRule::ROUNDS, 'default' => 0, 'description' => '0 | 1 | 10 | 100', 'example' => 10],
             'direction' => ['type' => 'string', 'enum' => PriceRule::DIRECTIONS, 'default' => 'nearest',
                 'description' => 'nearest | down | up', 'example' => 'down'],
-            'mode' => ['type' => 'string', 'enum' => PriceRule::MODES, 'default' => 'price',
-                'description' => 'price | discount | undiscount', 'example' => 'discount'],
+            'price_mode' => ['type' => 'string', 'enum' => PriceRule::MODES, 'default' => 'price',
+                'description' => 'price | discount | undiscount (mode — это plan/apply записи)', 'example' => 'discount'],
             'modifications' => ['type' => 'boolean', 'default' => true, 'description' => 'менять и цены модификаций (по умолчанию да)'],
         ]);
     }
@@ -119,7 +119,7 @@ class ProductPrices extends AbstractTool implements BatchToolInterface
     private static function rule(array $args): PriceRule
     {
         return new PriceRule((string)($args['op'] ?? ''), $args['value'] ?? null, (int)($args['round'] ?? 0),
-            (string)($args['direction'] ?? 'nearest'), (string)($args['mode'] ?? 'price'));
+            (string)($args['direction'] ?? 'nearest'), (string)($args['price_mode'] ?? 'price'));
     }
 
     private function withMods(array $args): bool

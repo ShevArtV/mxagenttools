@@ -59,6 +59,7 @@ class PassportTest extends TestCase
             $this->assertSame($write ? 'mxapi_agent_write' : 'mxapi_agent_read', $spec['permission']);
             $this->assertSame('mgr', $spec['modx_context']);
             $params = array_column($spec['parameters'], null, 'name');
+            $this->assertCount(count($spec['parameters']), $params, "{$name}: имя параметра повторяется (mode/expect/note — служебные записи)");
             preg_match_all('/\{([a-z_]+)/', $spec['path'], $m);
             foreach ($m[1] as $pathParam) {
                 $this->assertArrayHasKey($pathParam, $params, "{$name}: параметр пути {$pathParam} не объявлен");
