@@ -78,6 +78,13 @@ MODX — `mxapi_agent_read`, `mxapi_agent_write` (политика пакета,
 значения для сайта агент берёт из инструкции сайта. Движок — Imagick, иначе GD (`Image\*`, по модулю на движок);
 SVG, не-картинки, анимация и уже малое — как есть. Ответ — `image {engine, before, after, processed, reason}`.
 
+### Внешние коды модификаций (1.1.0-beta5)
+
+`modification.export` — строки {product, modification, name, external_id, source} по списку товаров (≤ 200, не-товары —
+в `missing`). Код по умолчанию `mod-<rid>-<mid>` (`source: temp`). Перед ответом — событие `mxAgentToolsOnExternalIds`
+(`Modx\ExternalIds`; заводит `resolver.events.php`) с `modifications` [mid => rid] и пустым `\ArrayObject` `codes`:
+плагин сайта кладёт `$codes[$mid] = '<код>'`, непустая строка заменяет код (`source: 1c`). Откуда коды — знает сайт.
+
 ## Хранение
 
 Без файлов на диске сайта и без конфига: журнал и загрузки — таблицы пакета
@@ -118,7 +125,7 @@ Tool\WriteToolInterface  targets(array $args): EntityRef[]; preview(args, before
 ## Инструменты (первый набор)
 
 Чтение: `resource.get`, `resource.find`, `resource.children`, `template.list` (шаблоны и их TV),
-`tv.get`, `tv.list`, `gallery.get`, `modification.list` (по товару), `setting.get`,
+`tv.get`, `tv.list`, `gallery.get`, `modification.list` (по товару), `modification.export` (модификации до 200 товаров с внешним кодом), `setting.get`,
 `clientconfig.get`, `context.list`, `query` (произвольная выборка xPDO по классу, where,
 select, sort, limit ≤ 200; запрещены классы пользователей, сессий, менеджер-логов: modUser*, msOrder*, msCustomer*,
 mxApi*, mxat*, modSession, modManagerLog, modActiveUser; код элементов читается),

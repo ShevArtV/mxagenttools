@@ -161,6 +161,7 @@ class Toolbox
                 Tool\Modification\ModificationImages::class] as $class) {
                 $tools[] = new $class($s['mods'], $s['files']);
             }
+            $tools[] = new Tool\Modification\ModificationExport($s['mods'], new ExternalIds($m));
         }
         if ($this->has(self::CLIENTCONFIG)) {
             array_push($tools, new Tool\ClientConfig\ClientConfigGet($m, $s['clientconfig']),

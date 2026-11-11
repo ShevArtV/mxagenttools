@@ -11,7 +11,7 @@ class PassportTest extends TestCase
 {
     const EXPECTED = ['clientconfig.get', 'clientconfig.update', 'context.list', 'element.get', 'element.list', 'file.list',
         'file.read', 'gallery.get', 'gallery.remove', 'gallery.sort', 'gallery.upload', 'modification.create',
-        'modification.delete', 'modification.images', 'modification.list', 'modification.update', 'product.categories',
+        'modification.delete', 'modification.export', 'modification.images', 'modification.list', 'modification.update', 'product.categories',
         'product.prices', 'product.select', 'query', 'resource.batch', 'resource.children', 'resource.create',
         'resource.delete', 'resource.find', 'resource.get', 'resource.select', 'resource.undelete', 'resource.update',
         'setting.get', 'setting.update', 'template.list', 'tv.create', 'tv.delete', 'tv.get', 'tv.list', 'tv.update'];
@@ -114,7 +114,7 @@ class PassportTest extends TestCase
             $ids[] = $meta->getId();
             $this->assertSame('mxagenttools', $meta->toArray()['provider'] ?? 'mxagenttools');
         }
-        $this->assertCount(42, array_unique($ids));
+        $this->assertCount(43, array_unique($ids));
         $this->assertContains('agent.journal.batch.rollback', $ids);
         $this->assertContains('agent.journal.rollback', $ids);
     }

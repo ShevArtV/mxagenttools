@@ -66,6 +66,40 @@ class Modifications
         return $out;
     }
 
+    /** @return array mid => name модификаций товара */
+    public function names(int $rid): array
+    {
+        $q = $this->modx->newQuery('msopModification', ['rid' => $rid]);
+        $q->select('id, name');
+        $out = [];
+        if ($q->prepare() && $q->stmt->execute()) {
+            foreach ($q->stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $out[(int)$row['id']] = (string)$row['name'];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * @param int[] $ids
+     * @return array id => pagetitle — только товары (msProduct) из $ids
+     */
+    public function products(array $ids): array
+    {
+        $out = [];
+        if (!$ids) {
+            return $out;
+        }
+        $q = $this->modx->newQuery('modResource', ['id:IN' => array_map('intval', $ids), 'class_key' => 'msProduct']);
+        $q->select('modResource.id, modResource.pagetitle');
+        if ($q->prepare() && $q->stmt->execute()) {
+            foreach ($q->stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $out[(int)$row['id']] = (string)$row['pagetitle'];
+            }
+        }
+        return $out;
+    }
+
     /** key => отсортированный список значений */
     public function options(int $mid): array
     {

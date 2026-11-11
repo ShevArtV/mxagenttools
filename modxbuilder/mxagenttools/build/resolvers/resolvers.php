@@ -11,5 +11,7 @@ return [
         ['source' => $this->config['resolvers'] . 'resolver.tables.php'],
         // права эндпоинтов в шаблоне mxApi и политика пакета
         ['source' => $this->config['resolvers'] . 'resolver.acl.php'],
+        // события пакета (mxAgentToolsOnExternalIds)
+        ['source' => $this->config['resolvers'] . 'resolver.events.php'],
     ],
 ];
