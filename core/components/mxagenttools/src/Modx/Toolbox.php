@@ -7,6 +7,7 @@ use MxAgentTools\Core\Entities;
 use MxAgentTools\Core\Executor;
 use MxAgentTools\Core\IdMap;
 use MxAgentTools\Core\Processor;
+use MxAgentTools\Core\QueryGuard;
 use MxAgentTools\Core\Uploads;
 use MxAgentTools\Entity;
 use MxAgentTools\Tool;
@@ -35,10 +36,13 @@ class Toolbox
     private $prepared = false;
     /** @var array|null */
     private $services;
+    /** @var SiteExtensions */
+    private $site;
 
     public function __construct(\modX $modx)
     {
         $this->modx = $modx;
+        $this->site = new SiteExtensions();
     }
 
     /** Установленные пакеты-расширения; msOptionsPrice2 — только вместе с ms2 (фото модификаций — из галереи ms2) */
@@ -82,7 +86,15 @@ class Toolbox
                 $this->modx->loadClass($class);
             }
         }
+        // Закрытые классы сайта — до первого query: модель, загруженная плагином сайта, иначе читалась бы целиком
+        QueryGuard::deny($this->site()['denied']);
         $this->prepared = true;
+    }
+
+    /** Инструменты, сущности и закрытые классы от плагинов сайта (mxAgentToolsOnRegister) */
+    private function site(): array
+    {
+        return $this->site->load($this->modx, $this->services());
     }
 
     public function executor(): Executor
@@ -167,7 +179,7 @@ class Toolbox
             array_push($tools, new Tool\ClientConfig\ClientConfigGet($m, $s['clientconfig']),
                 new Tool\ClientConfig\ClientConfigUpdate($s['clientconfig']));
         }
-        return $tools;
+        return array_merge($tools, $this->site()['tools']);
     }
 
     public function entities(): Entities
@@ -185,6 +197,9 @@ class Toolbox
         }
         if ($this->has(self::CLIENTCONFIG)) {
             $entities->add($s['clientconfig']);
+        }
+        foreach ($this->site()['entities'] as $entity) {
+            $entities->add($entity);
         }
         return $entities;
     }

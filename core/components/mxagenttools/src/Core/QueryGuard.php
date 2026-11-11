@@ -18,14 +18,23 @@ final class QueryGuard
     const OPERATORS = ['=', '!=', '<>', '>', '<', '>=', '<=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN', 'IS', 'IS NOT'];
     const KEY_RE = '/^(?:(AND|OR):)?([A-Za-z_][A-Za-z0-9_]*)(?::([^:]+))?$/i';
 
+    /** @var string[] классы, закрытые плагинами сайта (в нижнем регистре) */
+    private static $denied = [];
+
+    /** @param string[] $classes классы сайта, которые query не отдаёт (событие mxAgentToolsOnRegister) */
+    public static function deny(array $classes): void
+    {
+        self::$denied = array_values(array_unique(array_merge(self::$denied, array_map('strtolower', array_map('strval', $classes)))));
+    }
+
     public static function checkClass(string $class): void
     {
         if (!preg_match(self::CLASS_RE, $class)) {
             throw new Refusal("query: недопустимое имя класса {$class}");
         }
-        if (preg_match(self::DENIED_CLASS_RE, $class)) {
+        if (preg_match(self::DENIED_CLASS_RE, $class) || in_array(strtolower($class), self::$denied, true)) {
             throw new Refusal("query: класс {$class} закрыт (пользователи, покупатели и заказы, сессии, журнал менеджера, "
-                . 'токены API, журнал агента)');
+                . 'токены API, журнал агента, классы, закрытые сайтом)');
         }
     }
 

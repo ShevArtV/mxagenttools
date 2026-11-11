@@ -139,4 +139,12 @@ class GuardsTest extends TestCase
         $this->expectException(Refusal::class);
         QueryGuard::sort('modResource', ['id'], ['id' => 'RAND()']);
     }
+
+    public function testSiteDeniedClass(): void
+    {
+        QueryGuard::checkClass('SomeSiteClass');
+        QueryGuard::deny(['SomeSiteClass']);
+        $this->expectException(Refusal::class);
+        QueryGuard::checkClass('somesiteclass');
+    }
 }
