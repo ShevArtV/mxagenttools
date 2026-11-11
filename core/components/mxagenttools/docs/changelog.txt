@@ -1,3 +1,7 @@
+1.1.0-beta6
+==============
+- modification.export: если name модификации пустое или повторяет название товара (trim, без учёта регистра), имя строится как «<название товара> — <значения опций через запятую>» — на сайтах, где у модификаций в name записан заголовок товара, размеры товара в выгрузке различимы.
+
 1.1.0-beta5
 ==============
 - modification.export (GET /agent/modifications/export): модификации msOptionsPrice2 до 200 товаров строками product, modification, name, external_id, source; не-товары — в missing. Внешний код по умолчанию mod-<товар>-<модификация> (temp), сайт подменяет его плагином на новом событии mxAgentToolsOnExternalIds (modifications [mid => rid], codes \ArrayObject) — source 1c. Событие заводит резолвер пакета.

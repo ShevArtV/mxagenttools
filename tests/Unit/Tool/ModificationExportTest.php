@@ -54,6 +54,18 @@ class ModificationExportTest extends TestCase
         $this->assertNull($ext->asked);
     }
 
+    public function testNameRepeatingProductTitleGetsOptions(): void
+    {
+        $mods = new FakeModifications([158 => ['title' => 'Трусы шёлковые', 'mods' => [
+            1931 => ['name' => 'Трусы шёлковые', 'options' => ['size' => ['L']]],
+            2275 => ['name' => ' трусы ШЁЛКОВЫЕ ', 'options' => ['size' => ['M']]],
+            2276 => ['name' => 'Трусы шёлковые бежевые', 'options' => ['size' => ['S']]],
+        ]]]);
+        $rows = (new ModificationExport($mods, new FakeExternalIds()))->read(['products' => [158]])['rows'];
+        $this->assertSame(['Трусы шёлковые — L', 'Трусы шёлковые — M', 'Трусы шёлковые бежевые'],
+            array_column($rows, 'name'));
+    }
+
     public function testTitle(): void
     {
         $this->assertSame('A — x, y, 1', ModificationExport::title('A', ['size' => ['1'], 'color' => ['x', 'y']]));

@@ -84,6 +84,7 @@ SVG, не-картинки, анимация и уже малое — как е�
 в `missing`). Код по умолчанию `mod-<rid>-<mid>` (`source: temp`). Перед ответом — событие `mxAgentToolsOnExternalIds`
 (`Modx\ExternalIds`; заводит `resolver.events.php`) с `modifications` [mid => rid] и пустым `\ArrayObject` `codes`:
 плагин сайта кладёт `$codes[$mid] = '<код>'`, непустая строка заменяет код (`source: 1c`). Откуда коды — знает сайт.
+`name` — имя модификации; пустое или равное названию товара (trim, без учёта регистра) — «<товар> — <опции>» (1.1.0-beta6).
 
 ## Хранение
 

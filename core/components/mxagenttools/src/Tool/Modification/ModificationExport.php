@@ -16,7 +16,8 @@ class ModificationExport extends AbstractTool implements ReadToolInterface
     const LIMIT = 200;
     const DESCRIPTION = 'Выгрузка модификаций msOptionsPrice2 нескольких товаров (до 200 за вызов) строками {product, '
         . 'modification, name, external_id, source}: товары — в переданном порядке, модификации — по rank. name — имя '
-        . 'модификации, а если оно пустое — «<название товара> — <значения опций через запятую>». external_id — uuid 1С, '
+        . 'модификации, а если оно пустое или повторяет название товара — «<название товара> — <значения опций через '
+        . 'запятую>». external_id — uuid 1С, '
         . 'если сайт его знает (source=1c), иначе временный код mod-<товар>-<модификация> (source=temp): под ним '
         . 'модификация уходит в RetailCRM. Несуществующие id и не-товары — в missing.';
 
@@ -53,7 +54,8 @@ class ModificationExport extends AbstractTool implements ReadToolInterface
             foreach ($this->mods->ofProduct($rid) as $mid) {
                 $name = (string)($names[$mid] ?? '');
                 $rows[] = ['product' => $rid, 'modification' => $mid,
-                    'name' => trim($name) !== '' ? $name : self::title($titles[$rid], $this->mods->options($mid)),
+                    'name' => self::isOwnName($name, $titles[$rid]) ? $name
+                        : self::title($titles[$rid], $this->mods->options($mid)),
                     'external_id' => "mod-{$rid}-{$mid}", 'source' => 'temp'];
                 $map[$mid] = $rid;
             }
@@ -67,6 +69,13 @@ class ModificationExport extends AbstractTool implements ReadToolInterface
             }
         }
         return ['rows' => $rows, 'missing' => $missing];
+    }
+
+    /** Своё имя модификации: непустое и не повторяет pagetitle товара (trim, без учёта регистра) */
+    public static function isOwnName(string $name, string $pagetitle): bool
+    {
+        $name = trim($name);
+        return $name !== '' && mb_strtolower($name, 'UTF-8') !== mb_strtolower(trim($pagetitle), 'UTF-8');
     }
 
     /** «pagetitle — значения опций через ", "» (ключи по алфавиту); без опций — pagetitle */
