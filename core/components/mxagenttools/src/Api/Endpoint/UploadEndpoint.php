@@ -18,7 +18,10 @@ class UploadEndpoint extends AgentEndpoint
             . 'картинка не перекодируется. Ответ: token (живёт mxagenttools.upload_ttl секунд), name (расширение — по '
             . 'итоговому формату), size, sha256 — ужатого, ext, width/height, mime и image {engine, before {size, width, height}, '
             . 'after {…}, processed, reason}. Размер присланного — до mxagenttools.upload_max_mb МиБ. Сам по себе файл на сайт '
-            . 'не попадает.',
+            . 'не попадает. original=true — оригинал: файл сохраняется байт-в-байт, без пережатия, поворота, ресайза и снятия '
+            . 'метаданных, а параметры сжатия (max_width, max_height, quality, format, strip_metadata) игнорируются; sha256 — '
+            . 'присланного файла; в ответе нет блока image, name — после очистки (cleanName: без путей и служебных символов), '
+            . 'но не переименовывается по формату.',
             '/agent/uploads', true, [
                 ['name' => 'data', 'type' => 'string', 'required' => true, 'description' => 'Содержимое файла в base64.',
                     'example' => '/9j/4AAQSkZJRgABAQ…'],
@@ -35,6 +38,8 @@ class UploadEndpoint extends AgentEndpoint
                 ['name' => 'format', 'type' => 'string', 'enum' => ['keep', 'jpeg', 'webp'], 'description' => 'Итоговый формат: keep — '
                     . 'как прислан, jpeg, webp.', 'example' => 'keep'],
                 ['name' => 'strip_metadata', 'type' => 'boolean', 'description' => 'Снять EXIF/GPS и комментарии (по умолчанию да).'],
+                ['name' => 'original', 'type' => 'boolean', 'description' => 'Загрузить без пережатия: байты как присланы, '
+                    . 'ключи сжатия игнорируются (по умолчанию нет).', 'example' => false],
             ]);
         // POST со scope agent.write, но не write-эндпоинт mxApi: иначе журнал вызовов и идемпотентность mxApi
         // сохраняли бы тело — файл в base64 — целиком. Запись на сайт делает инструмент, он и журналируется.
@@ -45,6 +50,6 @@ class UploadEndpoint extends AgentEndpoint
     protected function run(array $params): array
     {
         return $this->toolbox->uploads()->put((string)$params['data'], (string)$params['name'], (string)($params['sha256'] ?? ''),
-            ImageOptions::from($params, $this->toolbox->imageDefaults()));
+            ImageOptions::forUpload($params, $this->toolbox->imageDefaults()));
     }
 }

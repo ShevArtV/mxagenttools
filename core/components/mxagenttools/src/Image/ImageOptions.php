@@ -58,6 +58,12 @@ final class ImageOptions
             isset($args['quality']));
     }
 
+    /** null — original=true: Uploads::put сохранит байты как есть, ключи сжатия игнорируются; иначе from() */
+    public static function forUpload(array $args, array $defaults): ?self
+    {
+        return filter_var($args['original'] ?? false, FILTER_VALIDATE_BOOLEAN) ? null : self::from($args, $defaults);
+    }
+
     /** Размер после вписывания в max_width × max_height (без увеличения) */
     public function fit(int $w, int $h): array
     {

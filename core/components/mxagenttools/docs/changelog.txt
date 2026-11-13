@@ -1,3 +1,7 @@
+1.1.0-beta8
+==============
+- POST /agent/uploads: параметр original (boolean, по умолчанию false) — файл сохраняется байт-в-байт, без пережатия, поворота по EXIF, ресайза и снятия метаданных; ключи max_width, max_height, quality, format, strip_metadata игнорируются; sha256 и size в ответе — присланного файла, блока image нет, имя — после cleanName. Без original поведение прежнее. Выбор опций — ImageOptions::forUpload() (null для оригинала).
+
 1.1.0-beta7
 ==============
 - Событие mxAgentToolsOnRegister (Modx\SiteExtensions): плагин сайта подключает свои инструменты (tools), сущности журнала (entities) и закрывает для query классы своей модели (denied_classes); selections и batch — для пары select → batch. Событие вызывается один раз на процесс; без подписчиков поведение прежнее. Закрытые классы действуют в query с первого запроса (QueryGuard::deny из Toolbox::prepare()).
