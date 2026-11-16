@@ -2,7 +2,7 @@
 
 namespace MxAgentTools\Core;
 
-/** Где лежат принятые файлы до записи: таблица пакета (Modx\DbUploadStorage) */
+/** Где лежат принятые файлы до записи: учёт в таблице пакета, содержимое файлами (Modx\DbUploadStorage) */
 interface UploadStorageInterface
 {
     public function save(string $token, string $name, string $sha256, string $data, int $expires): void;

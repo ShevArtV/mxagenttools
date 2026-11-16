@@ -1,3 +1,7 @@
+1.1.0-beta9
+==============
+- Загрузки (POST /agent/uploads): содержимое принятого файла хранится файлом в core/components/mxagenttools/tmp/uploads/<token>.bin, а не base64 в таблице mxagenttools_upload (там остаётся учётная запись без данных). Раньше base64 (+33%) в longtext упиралось в max_allowed_packet MariaDB (ошибка 1153): оригиналы больше ~12 МБ не сохранялись. Старые записи с base64 в БД читаются как раньше; файл удаляется вместе с записью (drop и purge просроченных). Общий /tmp не используется.
+
 1.1.0-beta8
 ==============
 - POST /agent/uploads: параметр original (boolean, по умолчанию false) — файл сохраняется байт-в-байт, без пережатия, поворота по EXIF, ресайза и снятия метаданных; ключи max_width, max_height, quality, format, strip_metadata игнорируются; sha256 и size в ответе — присланного файла, блока image нет, имя — после cleanName. Без original поведение прежнее. Выбор опций — ImageOptions::forUpload() (null для оригинала).

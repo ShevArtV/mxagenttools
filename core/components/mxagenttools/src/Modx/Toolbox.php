@@ -126,7 +126,7 @@ class Toolbox
     /** Настройки читаются при вызове: объект создаётся и при регистрации эндпоинтов, поэтому без prepare() */
     public function uploads(): Uploads
     {
-        return new Uploads(new DbUploadStorage($this->modx), (int)$this->modx->getOption('mxagenttools.upload_ttl', null, 3600),
+        return new Uploads(new DbUploadStorage($this->modx, new UploadBlobs($this->tmpPath() . '/uploads')), (int)$this->modx->getOption('mxagenttools.upload_ttl', null, 3600),
             (int)round((float)$this->modx->getOption('mxagenttools.upload_max_mb', null, 20) * 1048576), $this->tmpPath(), new Images());
     }
 
