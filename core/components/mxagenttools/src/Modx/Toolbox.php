@@ -165,7 +165,9 @@ class Toolbox
                 new Tool\Gallery\GalleryRemove($s['files'], $mods), new Tool\Gallery\GallerySort($s['files']),
                 new Tool\Batch\ProductSelect($m, $s['selections'], $s['batch']->limit()),
                 new Tool\Batch\ProductCategories($s['batch'], $s['resource']),
-                new Tool\Batch\ProductPrices($s['batch'], $s['resource'], $mods));
+                new Tool\Batch\ProductPrices($s['batch'], $s['resource'], $mods),
+                new Tool\Link\ProductLinkGet($s['links']), new Tool\Link\ProductLinkCreate($s['links']),
+                new Tool\Link\ProductLinkDelete($s['links']), new Tool\Link\ProductLinkSet($s['links'], $s['batch']));
         }
         if ($this->has(self::MSOPTIONSPRICE)) {
             foreach ([Tool\Modification\ModificationList::class, Tool\Modification\ModificationCreate::class,
@@ -191,6 +193,7 @@ class Toolbox
         $entities->add($s['setting']);
         if ($this->has(self::MINISHOP2)) {
             $entities->add(new Entity\Gallery($s['files'], $s['ids'], $this->tmpPath()));
+            $entities->add(new Entity\ProductLink($s['links']));
         }
         if ($this->has(self::MSOPTIONSPRICE)) {
             $entities->add(new Entity\Modification($s['mods'], $s['ids']));
@@ -218,7 +221,7 @@ class Toolbox
                 'resource' => new Entity\Resource($m, $processor, $tvs, $product),
                 'tv' => new Entity\Tv($m, $processor, $tvs, $ids), 'setting' => new Entity\Setting($m, $processor),
                 'mods' => $this->has(self::MSOPTIONSPRICE) ? new Modifications($m, $processor) : null,
-                'clientconfig' => new Entity\ClientConfig($m, $processor),
+                'clientconfig' => new Entity\ClientConfig($m, $processor), 'links' => new ProductLinks($m),
                 'code' => new CodeFiles($m, (int)$m->getOption('mxagenttools.file_max_kb', null, 512))];
             $this->services['selections'] = new Selections($m, (int)$m->getOption('mxagenttools.selection_ttl', null, 86400));
             $this->services['batch'] = new BatchIds($this->services['selections'],

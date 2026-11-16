@@ -62,6 +62,16 @@ MODX — `mxapi_agent_read`, `mxapi_agent_write` (политика пакета,
    откат всех порций операции, новые первыми (`Core\BatchRollback`); сбой посередине — `complete: false`, повтор
    продолжит с оставшихся.
 
+### Связи товаров (1.1.0-beta9)
+
+`product.link.get` — типы связи (`msLink`) и связи товара: тип, связанный товар, `direction` master | slave.
+`product.link.create` / `product.link.delete` — пара товаров по типу `link` (по умолчанию 1), `both` — обе строки.
+`product.link.set` — набор товаров (`ids` или `selection` + `page`, ≤ 40) каждый с каждым, только many_to_many / one_to_one;
+недостающие строки добавляются, готовые не трогаются (повторный apply без дублей). Сущность журнала `product_link`
+(`Entity\ProductLink`, id `link:master:slave`, снимок — строка или null) пишется напрямую через xPDO, а не процессорами ms2:
+`productlink/create` для many_to_many склеивает группы, `remove` стирает все связи товара — откат был бы неточным.
+Тип `many_to_one` ms2 хранит наоборот (slave → master) — `Core\LinkPairs`. Право — `msproduct_save`.
+
 ### Чтение кода (1.1.0)
 
 `element.list` / `element.get` — чанки, шаблоны, сниппеты, плагины: поля, категория, код (у статичного — файл, если
@@ -127,7 +137,7 @@ Tool\WriteToolInterface  targets(array $args): EntityRef[]; preview(args, before
 
 Чтение: `resource.get`, `resource.find`, `resource.children`, `template.list` (шаблоны и их TV),
 `tv.get`, `tv.list`, `gallery.get`, `modification.list` (по товару), `modification.export` (модификации до 200 товаров с внешним кодом), `setting.get`,
-`clientconfig.get`, `context.list`, `query` (произвольная выборка xPDO по классу, where,
+`clientconfig.get`, `product.link.get`, `context.list`, `query` (произвольная выборка xPDO по классу, where,
 select, sort, limit ≤ 200; запрещены классы пользователей, сессий, менеджер-логов: modUser*, msOrder*, msCustomer*,
 mxApi*, mxat*, modSession, modManagerLog, modActiveUser; код элементов читается),
 `element.list`, `element.get`, `file.list`, `file.read`, `resource.select`, `product.select`.
@@ -136,7 +146,7 @@ mxApi*, mxat*, modSession, modManagerLog, modActiveUser; код элементо
 `resource.delete`, `resource.undelete`, `tv.create`, `tv.update` (вкл. привязку к шаблонам),
 `tv.delete`, `gallery.upload`, `gallery.remove`, `gallery.sort`, `modification.create`,
 `modification.update`, `modification.delete`, `modification.images`, `setting.update`,
-`clientconfig.update`; пакетные — `resource.batch`, `product.categories`, `product.prices`.
+`clientconfig.update`, `product.link.create`, `product.link.delete`; пакетные — `product.link.set`, `resource.batch`, `product.categories`, `product.prices`.
 
 Имена инструментов = `id` эндпоинтов с префиксом `agent.`. Пакеты-расширения (miniShop2,
 msOptionsPrice2, Collections, ClientConfig) подгружаются, если установлены; эндпоинт, которому

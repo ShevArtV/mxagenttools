@@ -1,3 +1,7 @@
+1.1.0-beta10
+==============
+- Связи товаров miniShop2 (ms2_product_links), сущность журнала product_link (Entity\ProductLink, id «link:master:slave»): product.link.get (GET /agent/products/{product}/links — типы связи и связи товара с направлением master/slave), product.link.create и product.link.delete (пара товаров, both — обе стороны, plan → apply → откат), product.link.set (набор товаров каждый с каждым по many_to_many/one_to_one, ids или selection + page, до 40 товаров, повторный apply дублей не создаёт). Строки пишутся напрямую, не процессорами ms2: те для many_to_many склеивают группы (create) и стирают все связи товара (remove), откат такой записи не был бы точным. product.link.create для many_to_many отказывает с подсказкой product.link.set, если у товара уже есть группа этого типа (single=true — связать одну пару). Нужно право msproduct_save, как у процессоров ms2. Регистрируются при установленном miniShop2.
+
 1.1.0-beta9
 ==============
 - Загрузки (POST /agent/uploads): содержимое принятого файла хранится файлом в core/components/mxagenttools/tmp/uploads/<token>.bin, а не base64 в таблице mxagenttools_upload (там остаётся учётная запись без данных). Раньше base64 (+33%) в longtext упиралось в max_allowed_packet MariaDB (ошибка 1153): оригиналы больше ~12 МБ не сохранялись. Старые записи с base64 в БД читаются как раньше; файл удаляется вместе с записью (drop и purge просроченных). Общий /tmp не используется.
