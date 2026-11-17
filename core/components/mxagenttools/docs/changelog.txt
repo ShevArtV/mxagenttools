@@ -1,3 +1,7 @@
+1.1.0-beta12
+==============
+- product.color.set: заменяются только «мусорные» строки со значением вне опции color и пустым pattern; строки с образцом остаются (на товаре 254 «Английский сад» с pattern не удалялся). Новая строка создаётся с image/image2 = 0 — план и запись совпадают.
+
 1.1.0-beta11
 ==============
 - Образец цвета товара msOptionsColor (строка modx_msop_colors, key=color), сущность журнала product_color (Entity\ProductColor, id «товар:значение»): product.color.get (GET /agent/products/{product}/color — по значениям опции color: есть ли строка, pattern, color; строки без значения в опции; кандидаты в доноры) и product.color.set (POST /agent/products/color/set — взять образец у донора того же цвета: товар с тем же значением color и непустым pattern; plan → apply → откат). Копируются pattern, pattern2, color, color2, картинки галереи донора (image, image2) — нет. Строка есть — mgr/color/update, нет — mgr/color/create: дублей не плодит. Запись — процессорами msoptionscolor (Modx\ProductColors). value — только из текущей опции color товара (новый цвет не заводится; при нескольких значениях обязателен). Строки товара со значением вне опции color заменяются. Ловушка пакета: msocColor::load при getObject([rid,key,value]) создаёт пустую строку, и processor create ловит её на любой ошибке — ProductColors::save убирает такую строку. Регистрируются при установленных miniShop2 и msOptionsColor; право msproduct_save.

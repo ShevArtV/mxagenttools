@@ -88,7 +88,7 @@ class ProductColorTest extends TestCase
     public function testStaleRowIsReplaced(): void
     {
         [$colors, $executor, $tool] = $this->setUpAll();
-        $colors->put(1054, 'Бежевый', 'x.jpg'); // в опции color уже нет
+        $colors->put(1054, 'Бежевый', ''); // в опции color уже нет, образца нет
         $args = ['product' => 1054];
         $plan = $executor->plan($tool, $args);
         $this->assertNull($plan['after']['product_color:1054:Бежевый']);
@@ -96,8 +96,16 @@ class ProductColorTest extends TestCase
         $this->assertNull($colors->row(1054, 'Бежевый'));
         $rb = $executor->rollbackPlan($out['journal']);
         $executor->rollbackApply($out['journal'], $rb['hash'], '');
-        $this->assertSame('x.jpg', $colors->row(1054, 'Бежевый')['pattern']);
+        $this->assertNotNull($colors->row(1054, 'Бежевый'));
         $this->assertNull($colors->row(1054, 'Белый'));
+    }
+
+    public function testStaleRowWithPatternIsKept(): void
+    {
+        [$colors, $executor, $tool] = $this->setUpAll();
+        $colors->put(1054, 'Бежевый', 'x.jpg');
+        $plan = $executor->plan($tool, ['product' => 1054]);
+        $this->assertArrayNotHasKey('product_color:1054:Бежевый', $plan['after']);
     }
 
     public function testFailedCreateLeavesNoBlankRow(): void

@@ -112,7 +112,7 @@ class ProductColorSet extends AbstractTool implements WriteToolInterface
         }
         $stale = [];
         foreach ($this->colors->rows($product) as $r) {
-            if (!in_array($r['value'], $options, true)) {
+            if (!in_array($r['value'], $options, true) && trim($r['pattern']) === '') { // с образцом — настоящая строка, не мусор
                 $stale[] = $r['value'];
             }
         }

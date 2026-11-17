@@ -16,7 +16,7 @@ class ProductColors
     const KEY = 'color';
     const PACKAGE = 'msoptionscolor';
     /** Поля строки, как в снимке; значение по умолчанию — для новой строки (не даём load() заполнить чужим при fill_colors_with_create) */
-    const DEFAULTS = ['name' => '', 'color' => '', 'color2' => '', 'pattern' => '', 'pattern2' => '', 'image' => '', 'image2' => '',
+    const DEFAULTS = ['name' => '', 'color' => '', 'color2' => '', 'pattern' => '', 'pattern2' => '', 'image' => '0', 'image2' => '0',
         'active' => '1', 'description' => ''];
     /** Что берётся у донора: картинка/hex образца; image и image2 — id файлов галереи донора, чужому товару они не подходят */
     const COPY = ['pattern', 'pattern2', 'color', 'color2'];
