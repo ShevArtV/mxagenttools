@@ -64,6 +64,10 @@ MODX — `mxapi_agent_read`, `mxapi_agent_write` (политика пакета,
 
 ### Связи товаров (1.1.0-beta9)
 
+`product.color.get` — образец цвета товара (msOptionsColor, `modx_msop_colors`, key=color): по значениям опции color — строка есть/нет,
+pattern, кандидаты в доноры. `product.color.set` — образец от донора того же цвета (товар с тем же value и непустым pattern),
+процессоры `msoptionscolor` `mgr/color/create|update`, без дублей; value только из опции color товара. Сущность журнала `product_color`
+(id «товар:значение»); цели — строка образца, затем ресурс (порядок отката).
 `product.link.get` — типы связи (`msLink`) и связи товара: тип, связанный товар, `direction` master | slave.
 `product.link.create` / `product.link.delete` — пара товаров по типу `link` (по умолчанию 1), `both` — обе строки.
 `product.link.set` — набор товаров (`ids` или `selection` + `page`, ≤ 40) каждый с каждым, только many_to_many / one_to_one;
@@ -137,7 +141,7 @@ Tool\WriteToolInterface  targets(array $args): EntityRef[]; preview(args, before
 
 Чтение: `resource.get`, `resource.find`, `resource.children`, `template.list` (шаблоны и их TV),
 `tv.get`, `tv.list`, `gallery.get`, `modification.list` (по товару), `modification.export` (модификации до 200 товаров с внешним кодом), `setting.get`,
-`clientconfig.get`, `product.link.get`, `context.list`, `query` (произвольная выборка xPDO по классу, where,
+`clientconfig.get`, `product.color.get`, `product.link.get`, `context.list`, `query` (произвольная выборка xPDO по классу, where,
 select, sort, limit ≤ 200; запрещены классы пользователей, сессий, менеджер-логов: modUser*, msOrder*, msCustomer*,
 mxApi*, mxat*, modSession, modManagerLog, modActiveUser; код элементов читается),
 `element.list`, `element.get`, `file.list`, `file.read`, `resource.select`, `product.select`.
@@ -146,7 +150,7 @@ mxApi*, mxat*, modSession, modManagerLog, modActiveUser; код элементо
 `resource.delete`, `resource.undelete`, `tv.create`, `tv.update` (вкл. привязку к шаблонам),
 `tv.delete`, `gallery.upload`, `gallery.remove`, `gallery.sort`, `modification.create`,
 `modification.update`, `modification.delete`, `modification.images`, `setting.update`,
-`clientconfig.update`, `product.link.create`, `product.link.delete`; пакетные — `product.link.set`, `resource.batch`, `product.categories`, `product.prices`.
+`clientconfig.update`, `product.color.set`, `product.link.create`, `product.link.delete`; пакетные — `product.link.set`, `resource.batch`, `product.categories`, `product.prices`.
 
 Имена инструментов = `id` эндпоинтов с префиксом `agent.`. Пакеты-расширения (miniShop2,
 msOptionsPrice2, Collections, ClientConfig) подгружаются, если установлены; эндпоинт, которому

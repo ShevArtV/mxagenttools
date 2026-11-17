@@ -25,6 +25,7 @@ class Toolbox
 {
     const MINISHOP2 = 'minishop2';
     const MSOPTIONSPRICE = 'msoptionsprice';
+    const MSOPTIONSCOLOR = 'msoptionscolor';
     const COLLECTIONS = 'collections';
     const CLIENTCONFIG = 'clientconfig';
 
@@ -51,13 +52,14 @@ class Toolbox
         if ($this->packages === null) {
             $this->packages = [];
             foreach ([self::MINISHOP2 => 'minishop2/', self::MSOPTIONSPRICE => 'msoptionsprice/',
+                self::MSOPTIONSCOLOR => 'msoptionscolor/',
                 self::COLLECTIONS => 'collections/', self::CLIENTCONFIG => 'clientconfig/'] as $package => $dir) {
                 if (is_dir(MODX_CORE_PATH . "components/{$package}/model/{$dir}")) {
                     $this->packages[] = $package;
                 }
             }
             if (!$this->has(self::MINISHOP2)) {
-                $this->packages = array_values(array_diff($this->packages, [self::MSOPTIONSPRICE]));
+                $this->packages = array_values(array_diff($this->packages, [self::MSOPTIONSPRICE, self::MSOPTIONSCOLOR]));
             }
         }
         return $this->packages;
@@ -79,7 +81,7 @@ class Toolbox
             $this->modx->getService('miniShop2', 'miniShop2', MODX_CORE_PATH . 'components/minishop2/model/minishop2/');
             $this->modx->loadClass('msProduct');
         }
-        foreach ([self::MSOPTIONSPRICE => 'msopModification', self::COLLECTIONS => 'CollectionContainer',
+        foreach ([self::MSOPTIONSPRICE => 'msopModification', self::MSOPTIONSCOLOR => 'msocColor', self::COLLECTIONS => 'CollectionContainer',
             self::CLIENTCONFIG => 'cgSetting'] as $package => $class) {
             if ($this->has($package)) {
                 $this->modx->addPackage($package, MODX_CORE_PATH . "components/{$package}/model/");
@@ -169,6 +171,9 @@ class Toolbox
                 new Tool\Link\ProductLinkGet($s['links']), new Tool\Link\ProductLinkCreate($s['links']),
                 new Tool\Link\ProductLinkDelete($s['links']), new Tool\Link\ProductLinkSet($s['links'], $s['batch']));
         }
+        if ($this->has(self::MSOPTIONSCOLOR)) {
+            array_push($tools, new Tool\Color\ProductColorGet($s['colors']), new Tool\Color\ProductColorSet($s['colors']));
+        }
         if ($this->has(self::MSOPTIONSPRICE)) {
             foreach ([Tool\Modification\ModificationList::class, Tool\Modification\ModificationCreate::class,
                 Tool\Modification\ModificationUpdate::class, Tool\Modification\ModificationDelete::class,
@@ -194,6 +199,9 @@ class Toolbox
         if ($this->has(self::MINISHOP2)) {
             $entities->add(new Entity\Gallery($s['files'], $s['ids'], $this->tmpPath()));
             $entities->add(new Entity\ProductLink($s['links']));
+        }
+        if ($this->has(self::MSOPTIONSCOLOR)) {
+            $entities->add(new Entity\ProductColor($s['colors']));
         }
         if ($this->has(self::MSOPTIONSPRICE)) {
             $entities->add(new Entity\Modification($s['mods'], $s['ids']));
@@ -221,7 +229,7 @@ class Toolbox
                 'resource' => new Entity\Resource($m, $processor, $tvs, $product),
                 'tv' => new Entity\Tv($m, $processor, $tvs, $ids), 'setting' => new Entity\Setting($m, $processor),
                 'mods' => $this->has(self::MSOPTIONSPRICE) ? new Modifications($m, $processor) : null,
-                'clientconfig' => new Entity\ClientConfig($m, $processor), 'links' => new ProductLinks($m),
+                'clientconfig' => new Entity\ClientConfig($m, $processor), 'links' => new ProductLinks($m), 'colors' => new ProductColors($m, $processor),
                 'code' => new CodeFiles($m, (int)$m->getOption('mxagenttools.file_max_kb', null, 512))];
             $this->services['selections'] = new Selections($m, (int)$m->getOption('mxagenttools.selection_ttl', null, 86400));
             $this->services['batch'] = new BatchIds($this->services['selections'],

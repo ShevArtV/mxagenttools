@@ -11,7 +11,7 @@ class PassportTest extends TestCase
 {
     const EXPECTED = ['clientconfig.get', 'clientconfig.update', 'context.list', 'element.get', 'element.list', 'file.list',
         'file.read', 'gallery.get', 'gallery.remove', 'gallery.sort', 'gallery.upload', 'modification.create',
-        'modification.delete', 'modification.export', 'modification.images', 'modification.list', 'modification.update', 'product.categories', 'product.link.create', 'product.link.delete', 'product.link.get', 'product.link.set',
+        'modification.delete', 'modification.export', 'modification.images', 'modification.list', 'modification.update', 'product.categories', 'product.color.get', 'product.color.set', 'product.link.create', 'product.link.delete', 'product.link.get', 'product.link.set',
         'product.prices', 'product.select', 'query', 'resource.batch', 'resource.children', 'resource.create',
         'resource.delete', 'resource.find', 'resource.get', 'resource.select', 'resource.undelete', 'resource.update',
         'setting.get', 'setting.update', 'template.list', 'tv.create', 'tv.delete', 'tv.get', 'tv.list', 'tv.update'];
